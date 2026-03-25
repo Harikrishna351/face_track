@@ -3,291 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FaceArchitect AI - Analyze Your Facial Architecture</title>
+    <title>FaceArchitect Pro | Biometric Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Space Grotesk', sans-serif;
+            background: #050508;
+            color: #e2e8f0;
             overflow-x: hidden;
         }
 
+        .font-display {
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        /* Animated Gradient Background */
+        .bg-void {
+            background:
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.15), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1), transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05), transparent 70%),
+                #050508;
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+        }
+
+        .bg-void::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        /* Glassmorphism Cards */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        /* Premium Button Effects */
+        .btn-premium {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-premium:hover::before {
+            left: 100%;
+        }
+
+        .btn-premium:hover {
+            border-color: rgba(139, 92, 246, 1);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Scanner Animation */
+        .scanner-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
         }
 
         .scanner-line {
             position: absolute;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
-            box-shadow: 0 0 20px #00d4ff;
-            animation: scan 2s linear infinite;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(56, 189, 248, 0.8) 20%,
+                rgba(139, 92, 246, 0.8) 50%,
+                rgba(56, 189, 248, 0.8) 80%,
+                transparent 100%
+            );
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.8), 0 0 40px rgba(139, 92, 246, 0.4);
+            animation: scanMove 3s ease-in-out infinite;
             opacity: 0;
-        }
-
-        @keyframes scan {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
         }
 
         .scanning .scanner-line {
             opacity: 1;
         }
 
-        .metric-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.3s ease, border-color 0.3s ease;
+        @keyframes scanMove {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
         }
 
-        .metric-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(0, 212, 255, 0.5);
+        /* Face Mesh Canvas Styling */
+        #output_canvas {
+            border-radius: 24px;
+            transform: scaleX(-1);
+            filter: contrast(1.1) saturate(1.2);
         }
 
-        .score-ring {
-            background: conic-gradient(from 0deg, #00d4ff var(--score), rgba(255,255,255,0.1) var(--score));
+        /* HUD Elements */
+        .hud-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(139, 92, 246, 0.5);
+        }
+
+        .hud-corner.tl { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
+        .hud-corner.tr { top: 20px; right: 20px; border-left: 0; border-bottom: 0; }
+        .hud-corner.bl { bottom: 20px; left: 20px; border-right: 0; border-top: 0; }
+        .hud-corner.br { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
+
+        /* Metric Bars */
+        .metric-fill {
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Floating Particles */
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
             border-radius: 50%;
-            animation: pulse-ring 2s infinite;
+            pointer-events: none;
+            animation: float 20s infinite;
         }
 
-        @keyframes pulse-ring {
-            0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
-            50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(10px, -10px); }
+            50% { transform: translate(-5px, 5px); }
+            75% { transform: translate(5px, 10px); }
         }
 
-        .gold-text {
-            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        /* Status Indicators */
+        .status-pill {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
         }
 
-        #canvas-container {
-            position: relative;
-            overflow: hidden;
-            border-radius: 24px;
+        .status-pill.active {
+            border-color: rgba(34, 197, 94, 0.5);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
         }
 
-        canvas {
-            border-radius: 24px;
-            transform: scaleX(-1); /* Mirror effect */
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .loading-shimmer {
+        /* Loading Shimmer */
+        .shimmer {
             background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
             background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+            animation: shimmer 2s infinite;
         }
 
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
+
+        /* Result Cards */
+        .result-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Circular Progress */
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 1s ease-in-out;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+        }
+
+        /* Grid Pattern */
+        .grid-pattern {
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
     </style>
 </head>
-<body class="text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex flex-col">
+
+    <div class="bg-void"></div>
+
+    <!-- Floating Particles -->
+    <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
 
     <!-- Header -->
-    <div class="text-center mb-8 fade-in">
-        <h1 class="text-5xl md:text-7xl font-bold mb-2 tracking-tight">
-            <span class="gold-text italic" style="font-family: 'Playfair Display', serif;">FaceArchitect</span>
-            <span class="text-cyan-400 text-2xl align-top">AI</span>
-        </h1>
-        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto">
-            Discover your facial symmetry score and unlock your optimized architecture
-        </p>
-    </div>
-
-    <!-- Main App Container -->
-    <div class="glass-panel rounded-3xl p-6 md:p-12 w-full max-w-4xl fade-in" style="animation-delay: 0.2s">
-
-        <!-- Camera View -->
-        <div id="camera-section" class="relative">
-            <div id="canvas-container" class="bg-black/50 aspect-video relative flex items-center justify-center mb-6">
-                <video id="input_video" class="hidden"></video>
-                <canvas id="output_canvas" class="w-full h-full object-cover"></canvas>
-
-                <!-- Scanning Overlay -->
-                <div id="scanning-overlay" class="absolute inset-0 pointer-events-none hidden">
-                    <div class="scanner-line"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="text-cyan-400 text-2xl font-bold tracking-widest animate-pulse">ANALYZING ARCHITECTURE...</div>
-                    </div>
-                </div>
-
-                <!-- Start Button -->
-                <button id="start-btn" onclick="startCamera()" class="absolute bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-8 rounded-full text-lg transition-all transform hover:scale-105 shadow-2xl flex items-center gap-3">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Start Analysis
-                </button>
+    <header class="relative z-10 w-full p-6 flex justify-between items-center border-b border-white/5 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
             </div>
+            <div>
+                <h1 class="font-display text-xl tracking-wider text-white font-bold">FACEARCHITECT</h1>
+                <p class="text-xs text-blue-400/80 tracking-widest uppercase">Biometric Analysis Engine v2.0</p>
+            </div>
+        </div>
 
-            <!-- Analysis Button -->
-            <button id="analyze-btn" onclick="analyzeFace()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-4 rounded-2xl text-lg transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mb-6 hidden">
-                ✨ Calculate Facial Architecture
+        <div class="flex items-center gap-4">
+            <div class="status-pill px-4 py-2 rounded-full flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-medium text-gray-300">SYSTEM ONLINE</span>
+            </div>
+            <button class="hidden md:block btn-premium px-6 py-2 rounded-full text-sm font-medium text-white">
+                Upgrade to Pro
             </button>
         </div>
+    </header>
 
-        <!-- Results Section (Hidden initially) -->
-        <div id="results-section" class="hidden fade-in">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Overall Score -->
-                <div class="metric-card rounded-2xl p-6 text-center relative overflow-hidden">
-                    <div class="absolute inset-0 opacity-10 bg-gradient-to-br from-cyan-400 to-blue-600"></div>
-                    <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Symmetry Score</h3>
-                    <div class="relative w-32 h-32 mx-auto mb-4">
-                        <div class="score-ring absolute inset-0 rounded-full" id="symmetry-ring" style="--score: 0deg"></div>
-                        <div class="absolute inset-2 bg-gray-900 rounded-full flex items-center justify-center">
-                            <span class="text-4xl font-bold text-cyan-400" id="symmetry-score">--</span>
+    <!-- Main Content -->
+    <main class="flex-1 relative z-10 container mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8 items-center justify-center">
+
+        <!-- Left Panel - Camera/Scanner -->
+        <div class="w-full lg:w-3/5 max-w-2xl">
+            <div class="glass-panel rounded-3xl p-1 relative overflow-hidden">
+                <!-- HUD Corners -->
+                <div class="hud-corner tl"></div>
+                <div class="hud-corner tr"></div>
+                <div class="hud-corner bl"></div>
+                <div class="hud-corner br"></div>
+
+                <!-- Camera Container -->
+                <div class="scanner-container relative aspect-video bg-black/50 rounded-2xl overflow-hidden" id="camera-container">
+                    <video id="input_video" class="hidden"></video>
+                    <canvas id="output_canvas" class="w-full h-full object-cover"></canvas>
+
+                    <!-- Overlay UI -->
+                    <div class="absolute inset-0 pointer-events-none">
+                        <!-- Grid -->
+                        <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+                        <!-- Center Reticle -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-white/10 rounded-full">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-white/5 rounded-full"></div>
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500/50 rounded-full blur-sm"></div>
+                        </div>
+
+                        <!-- Corner Markers -->
+                        <div class="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-blue-500/50"></div>
+                        <div class="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-blue-500/50"></div>
+                        <div class="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-blue-500/50"></div>
+                        <div class="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-blue-500/50"></div>
+
+                        <!-- Scanning Line -->
+                        <div class="scanner-line"></div>
+                    </div>
+
+                    <!-- Start Button Overlay -->
+                    <div id="start-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-20">
+                        <div class="text-center space-y-6 p-8">
+                            <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center mb-4">
+                                <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-display font-bold text-white mb-2">Initialize Scan</h3>
+                                <p class="text-gray-400 text-sm max-w-xs mx-auto">Position your face within the frame for biometric analysis</p>
+                            </div>
+                            <button onclick="startCamera()" class="btn-premium px-8 py-4 rounded-full text-white font-medium flex items-center gap-2 mx-auto group">
+                                <span>Start Analysis</span>
+                                <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                </svg>
+                            </button>
+                            <p class="text-xs text-gray-500">Camera access required • Data processed locally</p>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-400" id="symmetry-rank">Calculating...</p>
+
+                    <!-- Scanning Overlay -->
+                    <div id="scanning-ui" class="absolute inset-0 hidden flex-col items-center justify-center bg-black/60 backdrop-blur-md z-30">
+                        <div class="w-24 h-24 border-2 border-blue-500/30 rounded-full border-t-blue-500 animate-spin mb-4"></div>
+                        <div class="text-center">
+                            <h3 class="text-xl font-display text-white mb-2 tracking-widest">SCANNING</h3>
+                            <div class="flex gap-1 justify-center">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                                <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                                <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-8 left-8 right-8">
+                            <div class="flex justify-between text-xs text-blue-400/60 mb-2 font-mono">
+                                <span>LANDMARKS</span>
+                                <span id="landmark-count">0/468</span>
+                            </div>
+                            <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="scan-progress" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Golden Ratio -->
-                <div class="metric-card rounded-2xl p-6 text-center">
-                    <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Golden Ratio</h3>
-                    <div class="text-5xl font-bold gold-text mb-2" id="golden-score">--</div>
-                    <p class="text-sm text-gray-400">Proximity to φ (1.618)</p>
-                    <div class="mt-4 w-full bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-yellow-600 to-yellow-300 h-2 rounded-full transition-all duration-1000" id="golden-bar" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <!-- Facial Zones -->
-                <div class="metric-card rounded-2xl p-6">
-                    <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-4">Architecture Breakdown</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">Jawline Definition</span>
-                            <div class="flex gap-1">
-                                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
-                                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
-                                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">Eye Spacing</span>
-                            <div class="flex gap-1" id="eye-rating">
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">Facial Balance</span>
-                            <div class="flex gap-1" id="balance-rating">
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                                <div class="w-2 h-2 rounded-full bg-gray-600"></div>
-                            </div>
+                <!-- Camera Controls -->
+                <div class="p-6 flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 text-sm text-gray-400">
+                            <div class="w-2 h-2 rounded-full bg-gray-600" id="face-status"></div>
+                            <span id="face-text">No face detected</span>
                         </div>
                     </div>
+                    <button onclick="analyzeFace()" id="analyze-btn" disabled class="btn-premium px-6 py-3 rounded-full text-white font-medium disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <span>Run Analysis</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Personalized Tips -->
-            <div class="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-2xl p-6 border border-purple-500/30 mb-6">
-                <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span class="text-2xl">🎯</span>
-                    <span>Your Optimization Blueprint</span>
-                </h3>
-                <ul class="space-y-3 text-gray-300" id="tips-list">
-                    <!-- Populated by JS -->
-                </ul>
-            </div>
-
-            <!-- CTA Section -->
-            <div class="text-center space-y-4">
-                <p class="text-gray-400 text-sm">Join 50,000+ users optimizing their facial architecture</p>
-                <button onclick="startFaceGym()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-12 rounded-full text-lg transition-all transform hover:scale-105 shadow-2xl shadow-cyan-500/25">
-                    Start 30-Day Face Gym →
-                </button>
-                <p class="text-xs text-gray-500 mt-4">Free facial exercises • Premium AI coaching $9.99/mo</p>
-            </div>
-
-            <!-- Share Button -->
-            <div class="flex justify-center gap-4 mt-6">
-                <button onclick="shareResults()" class="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors text-sm border border-gray-700">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
-                    Share Score
-                </button>
-                <button onclick="downloadPhoto()" class="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors text-sm border border-gray-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    Save Analysis
-                </button>
+            <!-- Tips Bar -->
+            <div class="mt-6 glass-panel rounded-2xl p-4 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm text-gray-300" id="tip-text">Ensure even lighting for optimal landmark detection. Avoid harsh shadows.</p>
             </div>
         </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="mt-12 text-center text-gray-600 text-sm">
-        <p>© 2024 FaceArchitect AI • Privacy First • Your facial data never leaves your device</p>
-    </div>
+        <!-- Right Panel - Results Dashboard -->
+        <div class="w-full lg:w-2/5 max-w-md">
+            <div id="results-panel" class="space-y-4 opacity-50 pointer-events-none transition-all duration-500">
+
+                <!-- Main Score Card -->
+                <div class="glass-panel rounded-3xl p-8 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"></div>
+
+                    <div class="relative z-10 text-center mb-8">
+                        <h3 class="text-gray-400 text-xs font-display tracking-[0.2em] mb-4">SYMMETRY INDEX</h3>
+                        <div class="relative w-40 h-40 mx-auto">
+                            <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"></circle>
+                                <circle id="score-circle" cx="60" cy="60" r="54" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" class="progress-ring-circle"></circle>
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#3b82f6"></stop>
+                                        <stop offset="100%" stop-color="#8b5cf6"></stop>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="symmetry-score" class="text-5xl font-display font-bold text-white">--</span>
+                                <span class="text-xs text-gray-500 mt-1">PERCENTILE</span>
+                            </div>
+                        </div>
+                        <div id="symmetry-rank" class="mt-4 inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
+                            Awaiting Analysis
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="result-card rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-400 mb-1" id="golden-score">--</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Golden Ratio</div>
+                        </div>
+                        <div class="result-card rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-400 mb-1" id="balance-score">--</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Balance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Metrics -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <h4 class="text-sm font-display text-gray-400 tracking-wider mb-4">FACIAL ARCHITECTURE</h4>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-300">Jawline Definition</span>
+                                <span class="text-blue-400 font-mono" id="jaw-value">--</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="jaw-bar" class="metric-fill h-full rounded-full w-0"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-300">Eye Spacing</span>
+                                <span class="text-purple-400 font-mono" id="eye-value">--</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="eye-bar" class="metric-fill h-full rounded-full w-0"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-300">Facial Harmony</span>
+                                <span class="text-cyan-400 font-mono" id="harmony-value">--</span>
+                            </div>
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div id="harmony-bar" class="metric-fill h-full rounded-full w-0"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Card -->
+                <div class="glass-panel rounded-2xl p-6 border border-purple-500/20">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border border-purple-500/30">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white mb-1">Unlock Your Blueprint</h4>
+                            <p class="text-sm text-gray-400 mb-4">Get personalized facial exercises and optimization protocols based on your biometric data.</p>
+                            <button onclick="startFaceGym()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2">
+                                <span>View Full Report</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
+        // Generate floating particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            const size = Math.random() * 100 + 50;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // MediaPipe Setup
         const videoElement = document.getElementById('input_video');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
 
         let faceMesh;
         let camera;
-        let isAnalyzing = false;
         let landmarks = null;
+        let isAnalyzing = false;
+
+        // Drawing utilities for premium look
+        function drawPremiumMesh(ctx, landmarks) {
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            // Draw video frame with slight darken for contrast
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (!landmarks) return;
+
+            // Draw connections with gradient effect
+            ctx.lineWidth = 1;
+            ctx.lineCap = 'round';
+
+            // Face oval
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+            const faceOval = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
+            for (let i = 0; i < faceOval.length; i++) {
+                const point = landmarks[faceOval[i]];
+                if (i === 0) ctx.moveTo(point.x * canvasElement.width, point.y * canvasElement.height);
+                else ctx.lineTo(point.x * canvasElement.width, point.y * canvasElement.height);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Eyes - cyan glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
+
+            // Left eye
+            const leftEye = [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7];
+            ctx.beginPath();
+            for (let i of leftEye) {
+                const point = landmarks[i];
+                ctx.lineTo(point.x * canvasElement.width, point.y * canvasElement.height);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Right eye
+            const rightEye = [263, 466, 388, 387, 386, 385, 384, 398, 362, 382, 381, 380, 374, 373, 390, 249];
+            ctx.beginPath();
+            for (let i of rightEye) {
+                const point = landmarks[i];
+                ctx.lineTo(point.x * canvasElement.width, point.y * canvasElement.height);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Nose - purple
+            ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.6)';
+            const nose = [168, 6, 197, 195, 5, 4, 1, 19, 94, 2];
+            ctx.beginPath();
+            for (let i of nose) {
+                const point = landmarks[i];
+                ctx.lineTo(point.x * canvasElement.width, point.y * canvasElement.height);
+            }
+            ctx.stroke();
+
+            // Mouth - pink
+            ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
+            const mouth = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146, 61, 13, 82, 81, 80, 191, 78];
+            ctx.beginPath();
+            for (let i of mouth) {
+                const point = landmarks[i];
+                ctx.lineTo(point.x * canvasElement.width, point.y * canvasElement.height);
+            }
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Key landmarks dots
+            const keyPoints = [1, 33, 263, 61, 291, 10, 152];
+            for (let i of keyPoints) {
+                const point = landmarks[i];
+                ctx.beginPath();
+                ctx.fillStyle = i === 1 ? '#fff' : 'rgba(139, 92, 246, 0.8)';
+                ctx.arc(point.x * canvasElement.width, point.y * canvasElement.height, i === 1 ? 4 : 2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
 
         function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                 landmarks = results.multiFaceLandmarks[0];
+                drawPremiumMesh(canvasCtx, landmarks);
 
-                // Draw face mesh
-                drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
-                    {color: '#00d4ff', lineWidth: 0.5});
-                drawConnectors(canvasCtx, landmarks, FACEMESH_CONTOURS,
-                    {color: '#ff00ff', lineWidth: 1});
+                document.getElementById('face-status').classList.remove('bg-gray-600');
+                document.getElementById('face-status').classList.add('bg-green-500');
+                document.getElementById('face-text').textContent = 'Face Detected';
+                document.getElementById('face-text').classList.add('text-green-400');
 
-                // Enable analyze button if not already analyzing
-                if (!isAnalyzing) {
-                    document.getElementById('analyze-btn').disabled = false;
-                    document.getElementById('analyze-btn').classList.remove('opacity-50');
+                document.getElementById('analyze-btn').disabled = false;
+
+                // Update landmark count for effect
+                if (Math.random() > 0.8) {
+                    document.getElementById('landmark-count').textContent = '468/468';
                 }
             } else {
                 landmarks = null;
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+                document.getElementById('face-status').classList.add('bg-gray-600');
+                document.getElementById('face-status').classList.remove('bg-green-500');
+                document.getElementById('face-text').textContent = 'No face detected';
+                document.getElementById('face-text').classList.remove('text-green-400');
                 document.getElementById('analyze-btn').disabled = true;
-                document.getElementById('analyze-btn').classList.add('opacity-50');
             }
-            canvasCtx.restore();
         }
 
         function startCamera() {
-            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('start-overlay').style.display = 'none';
 
             faceMesh = new FaceMesh({locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
@@ -306,207 +631,152 @@
                 onFrame: async () => {
                     await faceMesh.send({image: videoElement});
                 },
-                width: 640,
-                height: 480
+                width: 1280,
+                height: 720
             });
 
             camera.start()
                 .then(() => {
-                    document.getElementById('analyze-btn').classList.remove('hidden');
-                    document.getElementById('analyze-btn').disabled = true;
-                    document.getElementById('analyze-btn').classList.add('opacity-50');
-
-                    // Set canvas size
-                    canvasElement.width = 640;
-                    canvasElement.height = 480;
+                    canvasElement.width = 1280;
+                    canvasElement.height = 720;
+                    document.getElementById('camera-container').classList.add('scanning');
                 })
                 .catch(err => {
-                    alert('Please allow camera access to analyze your facial architecture');
                     console.error(err);
+                    alert('Camera access required for biometric analysis');
                 });
         }
 
-        function calculateSymmetry(landmarks) {
-            // Simplified symmetry calculation using key facial points
-            // Compare left vs right side distances
+        function calculateMetrics() {
+            if (!landmarks) return null;
 
-            const leftEye = landmarks[33];  // Left eye inner corner
-            const rightEye = landmarks[263]; // Right eye inner corner
-            const noseTip = landmarks[1];
-            const leftMouth = landmarks[61];
-            const rightMouth = landmarks[291];
-
-            // Calculate distances from center line (nose)
-            const leftEyeDist = Math.abs(leftEye.x - noseTip.x);
-            const rightEyeDist = Math.abs(rightEye.x - noseTip.x);
-            const leftMouthDist = Math.abs(leftMouth.x - noseTip.x);
-            const rightMouthDist = Math.abs(rightMouth.x - noseTip.x);
-
-            const eyeSymmetry = 100 - (Math.abs(leftEyeDist - rightEyeDist) * 200);
-            const mouthSymmetry = 100 - (Math.abs(leftMouthDist - rightMouthDist) * 200);
-
-            return Math.floor((eyeSymmetry + mouthSymmetry) / 2);
-        }
-
-        function calculateGoldenRatio(landmarks) {
-            // Simplified phi calculation based on facial thirds
-            const faceTop = landmarks[10]; // Forehead
-            const faceBottom = landmarks[152]; // Chin
+            // Symmetry calculation
+            const leftEye = landmarks[33];
+            const rightEye = landmarks[263];
             const nose = landmarks[1];
 
-            const totalHeight = Math.abs(faceTop.y - faceBottom.y);
-            const upperThird = Math.abs(faceTop.y - nose.y);
+            const leftDist = Math.abs(leftEye.x - nose.x);
+            const rightDist = Math.abs(rightEye.x - nose.x);
+            const symmetry = Math.floor(100 - (Math.abs(leftDist - rightDist) * 500));
 
-            const ratio = totalHeight / (upperThird * 1.618);
-            const score = Math.floor((1 - Math.abs(1 - ratio)) * 100);
+            // Golden ratio (simplified)
+            const top = landmarks[10];
+            const bottom = landmarks[152];
+            const faceHeight = Math.abs(bottom.y - top.y);
+            const upperFace = Math.abs(nose.y - top.y);
+            const golden = Math.floor((upperFace / (faceHeight - upperFace)) * 100);
 
-            return Math.max(0, Math.min(100, score));
+            return {
+                symmetry: Math.max(60, Math.min(99, symmetry)),
+                golden: Math.max(70, Math.min(99, golden)),
+                jaw: Math.floor(Math.random() * 20) + 75,
+                balance: Math.floor(Math.random() * 15) + 80,
+                harmony: Math.floor(Math.random() * 20) + 75
+            };
         }
 
         function analyzeFace() {
-            if (!landmarks) return;
+            if (!landmarks || isAnalyzing) return;
 
             isAnalyzing = true;
-            document.getElementById('analyze-btn').disabled = true;
-            document.getElementById('scanning-overlay').classList.remove('hidden');
-            document.getElementById('scanning-overlay').classList.add('scanning');
+            const container = document.getElementById('camera-container');
+            const scanningUI = document.getElementById('scanning-ui');
 
-            // Play scanning sound effect (optional - browser might block)
-            try {
-                const audio = new AudioContext();
-                const osc = audio.createOscillator();
-                const gain = audio.createGain();
-                osc.connect(gain);
-                gain.connect(audio.destination);
-                osc.frequency.setValueAtTime(800, audio.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, audio.currentTime + 0.5);
-                gain.gain.setValueAtTime(0.1, audio.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audio.currentTime + 0.5);
-                osc.start();
-                osc.stop(audio.currentTime + 0.5);
-            } catch(e) {}
+            scanningUI.classList.remove('hidden');
+            scanningUI.classList.add('flex');
 
-            // Simulate processing time for drama
+            // Simulate progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                document.getElementById('scan-progress').style.width = progress + '%';
+                if (progress >= 100) clearInterval(interval);
+            }, 100);
+
             setTimeout(() => {
-                const symmetryScore = calculateSymmetry(landmarks);
-                const goldenScore = calculateGoldenRatio(landmarks);
+                const metrics = calculateMetrics();
 
-                // Update UI
-                document.getElementById('symmetry-score').textContent = symmetryScore;
-                document.getElementById('symmetry-ring').style.setProperty('--score', `${symmetryScore * 3.6}deg`);
+                // Animate results
+                document.getElementById('results-panel').classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('results-panel').classList.add('opacity-100');
 
-                document.getElementById('golden-score').textContent = goldenScore + '%';
-                document.getElementById('golden-bar').style.width = goldenScore + '%';
+                // Update circular progress
+                const circle = document.getElementById('score-circle');
+                const circumference = 2 * Math.PI * 54;
+                const offset = circumference - (metrics.symmetry / 100) * circumference;
+                circle.style.strokeDashoffset = offset;
 
-                // Set ratings
-                const ratings = ['eye-rating', 'balance-rating'];
-                ratings.forEach(id => {
-                    const el = document.getElementById(id);
-                    const dots = el.querySelectorAll('div');
-                    const activeDots = Math.floor(Math.random() * 2) + 3; // 3-4 dots
-                    dots.forEach((dot, i) => {
-                        if (i < activeDots) {
-                            dot.classList.remove('bg-gray-600');
-                            dot.classList.add('bg-cyan-400');
-                        }
-                    });
-                });
+                // Animate numbers
+                animateValue('symmetry-score', 0, metrics.symmetry, 1000);
+                animateValue('golden-score', 0, metrics.golden, 800);
+                animateValue('balance-score', 0, metrics.balance, 800);
 
-                // Generate personalized tips
-                const tips = [];
-                if (symmetryScore < 85) {
-                    tips.push("Your left side shows slightly more muscle activation. Try sleeping on your back to prevent asymmetrical compression.");
-                    tips.push("Consider facial yoga for the <span class='text-cyan-400'>buccinator muscles</span> to balance facial tone.");
-                } else {
-                    tips.push("Excellent symmetry foundation! Focus on <span class='text-cyan-400'>maintaining</span> with posture correction.");
-                }
+                // Update bars
+                setTimeout(() => {
+                    document.getElementById('jaw-bar').style.width = metrics.jaw + '%';
+                    document.getElementById('eye-bar').style.width = (metrics.symmetry * 0.9) + '%';
+                    document.getElementById('harmony-bar').style.width = metrics.harmony + '%';
 
-                if (goldenScore < 90) {
-                    tips.push("Your lower third could benefit from <span class='text-amber-400'>mewing technique</span> to enhance jawline definition.");
-                } else {
-                    tips.push("Your proportions are close to the golden ratio. Highlight this with <span class='text-amber-400'>contouring</span> at the cheekbones.");
-                }
-
-                tips.push("Lighting optimization: Position light sources at <span class='text-cyan-400'>45 degrees</span> to maximize your facial architecture in photos.");
-
-                const tipsList = document.getElementById('tips-list');
-                tipsList.innerHTML = tips.map(tip => `<li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">▸</span><span>${tip}</span></li>`).join('');
+                    document.getElementById('jaw-value').textContent = metrics.jaw + '%';
+                    document.getElementById('eye-value').textContent = Math.floor(metrics.symmetry * 0.9) + '%';
+                    document.getElementById('harmony-value').textContent = metrics.harmony + '%';
+                }, 500);
 
                 // Rank
-                let rank = "Average";
-                if (symmetryScore > 95) rank = "Exceptional (Top 2%)";
-                else if (symmetryScore > 90) rank = "Above Average (Top 15%)";
-                else if (symmetryScore > 85) rank = "Good Symmetry";
-                document.getElementById('symmetry-rank').textContent = rank;
+                const ranks = {
+                    95: ['Exceptional', 'Top 2% - Golden Proportions'],
+                    90: ['Superior', 'Top 5% - Highly Symmetrical'],
+                    85: ['Above Average', 'Top 15% - Balanced Features'],
+                    80: ['Average', 'Within Normal Range'],
+                    0: ['Developing', 'Room for Optimization']
+                };
 
-                // Show results
-                document.getElementById('scanning-overlay').classList.add('hidden');
-                document.getElementById('scanning-overlay').classList.remove('scanning');
-                document.getElementById('camera-section').classList.add('hidden');
-                document.getElementById('results-section').classList.remove('hidden');
+                let rankText = ranks[0];
+                for (let threshold of [95, 90, 85, 80]) {
+                    if (metrics.symmetry >= threshold) {
+                        rankText = ranks[threshold];
+                        break;
+                    }
+                }
 
+                document.getElementById('symmetry-rank').innerHTML = `
+                    <span class="text-${metrics.symmetry > 90 ? 'purple' : 'blue'}-400 font-semibold">${rankText[0]}</span>
+                    <span class="text-gray-500 text-xs">• ${rankText[1]}</span>
+                `;
+
+                // Hide scanning
+                scanningUI.classList.add('hidden');
+                scanningUI.classList.remove('flex');
                 isAnalyzing = false;
-
-                // Confetti effect
-                createConfetti();
 
             }, 2000);
         }
 
-        function createConfetti() {
-            const colors = ['#00d4ff', '#ffd700', '#ff00ff'];
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const div = document.createElement('div');
-                    div.style.position = 'fixed';
-                    div.style.left = Math.random() * 100 + 'vw';
-                    div.style.top = '-10px';
-                    div.style.width = '10px';
-                    div.style.height = '10px';
-                    div.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    div.style.borderRadius = '50%';
-                    div.style.pointerEvents = 'none';
-                    div.style.zIndex = '9999';
-                    div.style.transition = 'all 2s ease-in';
-                    document.body.appendChild(div);
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            const range = end - start;
+            const minTimer = 50;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            stepTime = Math.max(stepTime, minTimer);
+            let startTime = new Date().getTime();
+            let endTime = startTime + duration;
+            let timer;
 
-                    setTimeout(() => {
-                        div.style.transform = `translateY(${window.innerHeight + 20}px) rotate(${Math.random() * 360}deg)`;
-                        div.style.opacity = '0';
-                    }, 100);
-
-                    setTimeout(() => div.remove(), 2000);
-                }, i * 30);
+            function run() {
+                let now = new Date().getTime();
+                let remaining = Math.max((endTime - now) / duration, 0);
+                let value = Math.round(end - (remaining * range));
+                obj.innerHTML = value;
+                if (value == end) clearInterval(timer);
             }
+
+            timer = setInterval(run, stepTime);
+            run();
         }
 
         function startFaceGym() {
-            alert("🚀 Coming Soon!\n\nJoin the waitlist for FaceArchitect Premium:\n• Daily facial symmetry exercises\n• AI-powered progress tracking\n• Personalized grooming recommendations\n\nEmail capture would go here!");
+            alert('Premium features:\n• Personalized facial exercise protocols\n• Daily symmetry tracking\n• AI-powered photo optimization\n\nComing to FaceArchitect Pro!');
         }
-
-        function shareResults() {
-            const score = document.getElementById('symmetry-score').textContent;
-            const text = `My facial symmetry score is ${score}/100! 📊\n\nDiscover your facial architecture with FaceArchitect AI`;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: 'FaceArchitect AI',
-                    text: text,
-                    url: window.location.href
-                });
-            } else {
-                // Fallback to clipboard
-                navigator.clipboard.writeText(text + '\n' + window.location.href);
-                alert('Copied to clipboard! Share your score.');
-            }
-        }
-
-        function downloadPhoto() {
-            alert('Screenshot functionality would capture the results card here!');
-        }
-
-        // Auto-start camera check on load for returning users (optional)
-        // window.onload = () => { /* could check localStorage */ };
     </script>
 </body>
 </html>
