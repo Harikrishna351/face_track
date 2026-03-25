@@ -34,7 +34,6 @@
             position: relative;
         }
 
-        /* Background Grid */
         .bg-grid {
             position: fixed;
             inset: 0;
@@ -45,7 +44,6 @@
             pointer-events: none;
         }
 
-        /* STEP CONTAINERS */
         .step {
             position: absolute;
             inset: 0;
@@ -74,7 +72,6 @@
             color: var(--primary);
             margin-bottom: 2rem;
             opacity: 0;
-            transform: translateY(20px);
         }
 
         h1 {
@@ -85,7 +82,6 @@
             margin-bottom: 1.5rem;
             max-width: 800px;
             opacity: 0;
-            transform: translateY(30px);
         }
 
         h1 span {
@@ -114,9 +110,8 @@
             text-transform: uppercase;
             cursor: pointer;
             border-radius: 100px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             opacity: 0;
-            transform: translateY(20px);
         }
 
         .btn-primary:hover {
@@ -124,69 +119,64 @@
             box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
         }
 
-        .features {
-            display: flex;
-            gap: 3rem;
-            margin-top: 4rem;
-            opacity: 0;
-        }
-
-        .feature {
-            text-align: center;
-        }
-
-        .feature-number {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2rem;
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        .feature-label {
-            font-size: 0.75rem;
-            letter-spacing: 0.1em;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 0.5rem;
-        }
-
-        /* STEP 2: SCANNING */
+        /* STEP 2: SCANNING - THE IMPORTANT PART */
         #step-scan {
-            background: rgba(0, 0, 0, 0.9);
+            background: #000;
+        }
+
+        .scan-container {
+            position: relative;
+            width: 700px;
+            max-width: 95vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .scan-header {
-            position: absolute;
-            top: 2rem;
-            left: 0;
-            right: 0;
             text-align: center;
-            z-index: 10;
+            margin-bottom: 2rem;
+            height: 60px;
         }
 
-        .scan-title {
+        .scan-phase {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.875rem;
+            font-size: 1.25rem;
             letter-spacing: 0.2em;
-            color: rgba(255, 255, 255, 0.6);
+            color: white;
             margin-bottom: 0.5rem;
+            opacity: 0;
+            transform: translateY(10px);
+            position: absolute;
+            width: 100%;
+            text-align: center;
         }
 
-        .scan-subtitle {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.4);
+        .scan-phase.active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.5s ease;
         }
 
-        .camera-container {
+        .scan-instruction {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 2rem;
+        }
+
+        .camera-wrapper {
             position: relative;
             width: 640px;
             height: 480px;
-            max-width: 90vw;
-            max-height: 70vh;
+            max-width: 100%;
             background: #000;
             border-radius: 24px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 60px rgba(0, 212, 255, 0.1);
+            box-shadow: 0 0 80px rgba(0, 212, 255, 0.1);
         }
 
         #input-video {
@@ -196,101 +186,311 @@
         #output-canvas {
             width: 100%;
             height: 100%;
-            transform: scaleX(-1); /* Mirror */
+            transform: scaleX(-1);
         }
 
-        /* Face Guide Overlay */
-        .face-guide {
+        /* Zone Overlays */
+        .zone-map {
             position: absolute;
             inset: 0;
             pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .guide-oval {
-            width: 280px;
-            height: 380px;
-            border: 2px dashed rgba(255, 255, 255, 0.2);
+        .zone {
+            position: absolute;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 50%;
-            position: relative;
+            transition: all 0.5s ease;
         }
 
-        .guide-oval.detected {
+        .zone.left-profile {
+            left: 10%;
+            top: 20%;
+            width: 30%;
+            height: 60%;
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .zone.center {
+            left: 35%;
+            top: 15%;
+            width: 30%;
+            height: 70%;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .zone.right-profile {
+            right: 10%;
+            top: 20%;
+            width: 30%;
+            height: 60%;
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .zone.scanning {
             border-color: var(--primary);
-            border-style: solid;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 30px rgba(0, 212, 255, 0.1);
+            background: rgba(0, 212, 255, 0.05);
         }
 
-        .guide-text {
+        .zone.complete {
+            border-color: var(--accent);
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        /* Facial Feature Zones */
+        .feature-zone {
             position: absolute;
-            bottom: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.6);
-            white-space: nowrap;
-            text-align: center;
-        }
-
-        .guide-text.detected {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* Scan Progress */
-        .scan-progress-container {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
             opacity: 0;
-            transition: opacity 0.3s;
         }
 
-        .scan-progress-container.active {
+        .feature-zone.active {
             opacity: 1;
+            border-color: var(--secondary);
+            background: rgba(255, 0, 110, 0.1);
+            box-shadow: 0 0 20px rgba(255, 0, 110, 0.2);
         }
 
-        .scan-bar-bg {
+        /* Smooth Scanning Line */
+        .scan-beam {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
+            height: 3px;
+            background: linear-gradient(90deg,
+                transparent,
+                var(--primary),
+                var(--secondary),
+                transparent
+            );
+            box-shadow: 0 0 20px var(--primary);
+            opacity: 0;
+            filter: blur(1px);
         }
 
-        .scan-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transition: width 0.1s linear;
+        .scan-beam.active {
+            opacity: 1;
+            animation: smoothScan 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
-        .scan-percentage {
-            text-align: center;
-            margin-top: 1rem;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.5rem;
-            color: white;
+        @keyframes smoothScan {
+            0% { top: 0%; }
+            100% { top: 100%; }
         }
 
-        /* Corner Brackets */
+        /* Circular Scanner for Profile Zones */
+        .circular-scanner {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .circular-scanner.active {
+            opacity: 1;
+            transform: scale(1);
+            animation: pulseScan 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseScan {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 20px rgba(0, 212, 255, 0);
+            }
+        }
+
+        /* Corner Markers */
         .corner {
             position: absolute;
-            width: 30px;
-            height: 30px;
-            border-color: rgba(255, 255, 255, 0.3);
+            width: 40px;
+            height: 40px;
+            border-color: rgba(255, 255, 255, 0.2);
             border-style: solid;
             border-width: 0;
+            transition: all 0.3s;
         }
 
         .corner.tl { top: 20px; left: 20px; border-top-width: 2px; border-left-width: 2px; }
         .corner.tr { top: 20px; right: 20px; border-top-width: 2px; border-right-width: 2px; }
         .corner.bl { bottom: 20px; left: 20px; border-bottom-width: 2px; border-left-width: 2px; }
         .corner.br { bottom: 20px; right: 20px; border-bottom-width: 2px; border-right-width: 2px; }
+
+        .corner.scanning {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Progress Indicators */
+        .scan-progress-container {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 3rem;
+            position: relative;
+        }
+
+        .phase-indicators {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .phase-indicators::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+        }
+
+        .phase-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid transparent;
+            position: relative;
+            z-index: 1;
+            transition: all 0.5s;
+        }
+
+        .phase-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+            transform: scale(1.3);
+        }
+
+        .phase-dot.complete {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .phase-label {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.625rem;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.4);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .phase-dot.active .phase-label {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s linear;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .scan-percentage {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            color: white;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .scan-detail {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.1em;
+            height: 20px;
+        }
+
+        /* Head Position Guide */
+        .head-guide {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .head-guide.active {
+            opacity: 1;
+        }
+
+        .head-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 0.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            animation: headTurn 3s ease-in-out infinite;
+        }
+
+        @keyframes headTurn {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+        }
+
+        .head-guide-text {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Feature Being Scanned Label */
+        .scanning-feature {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            letter-spacing: 0.2em;
+            color: var(--primary);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .scanning-feature.active {
+            opacity: 1;
+        }
 
         /* STEP 3: PROCESSING */
         #step-process {
@@ -301,10 +501,10 @@
             text-align: center;
         }
 
-        .process-icon {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 2rem;
+        .process-ring-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 3rem;
             position: relative;
         }
 
@@ -314,20 +514,20 @@
             border: 3px solid transparent;
             border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 2s linear infinite;
         }
 
         .process-ring:nth-child(2) {
-            inset: 10px;
+            inset: 20px;
             border-top-color: var(--secondary);
-            animation-duration: 1.5s;
+            animation-duration: 3s;
             animation-direction: reverse;
         }
 
         .process-ring:nth-child(3) {
-            inset: 20px;
+            inset: 40px;
             border-top-color: var(--accent);
-            animation-duration: 2s;
+            animation-duration: 4s;
         }
 
         @keyframes spin {
@@ -338,7 +538,6 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 1.5rem;
             margin-bottom: 1rem;
-            letter-spacing: 0.1em;
         }
 
         .process-detail {
@@ -354,11 +553,14 @@
         }
 
         .process-step {
-            padding: 1rem;
+            padding: 1.25rem;
             border-left: 2px solid rgba(255, 255, 255, 0.1);
             color: rgba(255, 255, 255, 0.4);
             font-size: 0.875rem;
-            transition: all 0.3s;
+            transition: all 0.5s;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .process-step.active {
@@ -370,6 +572,24 @@
         .process-step.complete {
             border-left-color: var(--accent);
             color: rgba(255, 255, 255, 0.6);
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.625rem;
+            flex-shrink: 0;
+        }
+
+        .process-step.complete .step-icon {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: black;
         }
 
         /* STEP 4: RESULTS */
@@ -413,7 +633,6 @@
             }
         }
 
-        /* Snapshot Display */
         .snapshot-container {
             position: relative;
             background: rgba(255, 255, 255, 0.03);
@@ -436,7 +655,6 @@
             background: #000;
         }
 
-        /* Metrics Panel */
         .metrics-panel {
             display: flex;
             flex-direction: column;
@@ -450,11 +668,9 @@
             padding: 1.5rem;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s, border-color 0.3s;
         }
 
         .metric-card:hover {
-            transform: translateY(-2px);
             border-color: rgba(255, 255, 255, 0.2);
         }
 
@@ -476,7 +692,6 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 2.5rem;
             font-weight: 700;
-            color: white;
         }
 
         .metric-bar-bg {
@@ -521,36 +736,10 @@
             border-radius: 100px;
             cursor: pointer;
             transition: all 0.3s;
-            font-family: inherit;
         }
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.1);
-            border-color: white;
-        }
-
-        /* Utility */
-        .fade-in {
-            animation: fadeIn 0.6s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Error Message */
-        .error-message {
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(239, 68, 68, 0.9);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            display: none;
-            z-index: 1000;
         }
     </style>
 </head>
@@ -561,61 +750,74 @@
     <!-- STEP 1: LANDING -->
     <div class="step active" id="step-landing">
         <div class="brand">FACEARCHITECT // BIOMETRIC ANALYSIS</div>
-        <h1>Discover your <span>facial architecture</span> score</h1>
+        <h1>Discover your <span>facial architecture</span></h1>
         <p class="subtitle">
-            Advanced frontal face mapping analyzing 468 biometric landmarks.
-            Get detailed insights on symmetry, proportions, and aesthetic harmony.
+            Multi-zone biometric scanning analyzes frontal facial structure through
+            systematic region mapping. Complete 3-phase scan for accurate metrics.
         </p>
         <button class="btn-primary" onclick="goToScan()">
-            Begin Analysis
+            Begin 3-Phase Scan
         </button>
-
-        <div class="features">
-            <div class="feature">
-                <div class="feature-number">468</div>
-                <div class="feature-label">LANDMARKS</div>
-            </div>
-            <div class="feature">
-                <div class="feature-number">4</div>
-                <div class="feature-label">METRICS</div>
-            </div>
-            <div class="feature">
-                <div class="feature-number">100%</div>
-                <div class="feature-label">PRIVATE</div>
-            </div>
-        </div>
     </div>
 
-    <!-- STEP 2: SCANNING -->
+    <!-- STEP 2: MULTI-ZONE SCANNING -->
     <div class="step" id="step-scan">
-        <div class="scan-header">
-            <div class="scan-title">FRONTAL BIOMETRIC SCAN</div>
-            <div class="scan-subtitle">Position your face within the guide | Keep still for 3 seconds</div>
-        </div>
-
-        <div class="camera-container">
-            <video id="input-video" playsinline></video>
-            <canvas id="output-canvas"></canvas>
-
-            <!-- Face Guide -->
-            <div class="face-guide">
-                <div class="guide-oval" id="face-oval">
-                    <div class="guide-text" id="guide-text">Align face within oval</div>
-                </div>
+        <div class="scan-container">
+            <div class="scan-header">
+                <div class="scan-phase" data-phase="1">PHASE 1: LEFT PROFILE</div>
+                <div class="scan-phase" data-phase="2">PHASE 2: CENTER ANALYSIS</div>
+                <div class="scan-phase" data-phase="3">PHASE 3: RIGHT PROFILE</div>
+                <div class="scan-instruction">Keep face steady within frame</div>
             </div>
 
-            <!-- Corners -->
-            <div class="corner tl"></div>
-            <div class="corner tr"></div>
-            <div class="corner bl"></div>
-            <div class="corner br"></div>
+            <div class="camera-wrapper">
+                <video id="input-video" playsinline></video>
+                <canvas id="output-canvas"></canvas>
 
-            <!-- Scan Progress -->
-            <div class="scan-progress-container" id="scan-progress">
-                <div class="scan-bar-bg">
-                    <div class="scan-bar-fill" id="scan-fill"></div>
+                <!-- Zone Indicators -->
+                <div class="zone-map">
+                    <div class="zone left-profile" data-zone="left"></div>
+                    <div class="zone center" data-zone="center"></div>
+                    <div class="zone right-profile" data-zone="right"></div>
+                </div>
+
+                <!-- Scanning Beam -->
+                <div class="scan-beam" id="scan-beam"></div>
+
+                <!-- Scanning Feature Label -->
+                <div class="scanning-feature" id="feature-label">ANALYZING JAWLINE</div>
+
+                <!-- Head Position Guide -->
+                <div class="head-guide" id="head-guide">
+                    <div class="head-icon"></div>
+                    <div class="head-guide-text">Slowly turn head</div>
+                </div>
+
+                <!-- Corners -->
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="scan-progress-container">
+                <div class="phase-indicators">
+                    <div class="phase-dot" data-dot="1">
+                        <div class="phase-label">LEFT</div>
+                    </div>
+                    <div class="phase-dot" data-dot="2">
+                        <div class="phase-label">CENTER</div>
+                    </div>
+                    <div class="phase-dot" data-dot="3">
+                        <div class="phase-label">RIGHT</div>
+                    </div>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="total-progress"></div>
                 </div>
                 <div class="scan-percentage" id="scan-percent">0%</div>
+                <div class="scan-detail" id="scan-detail">Initializing sensors...</div>
             </div>
         </div>
     </div>
@@ -623,19 +825,31 @@
     <!-- STEP 3: PROCESSING -->
     <div class="step" id="step-process">
         <div class="process-container">
-            <div class="process-icon">
+            <div class="process-ring-container">
                 <div class="process-ring"></div>
                 <div class="process-ring"></div>
                 <div class="process-ring"></div>
             </div>
-            <div class="process-title">PROCESSING BIOMETRICS</div>
-            <div class="process-detail">Analyzing 468 facial landmarks...</div>
+            <div class="process-title">COMPILING ARCHITECTURE</div>
+            <div class="process-detail">Processing 468 biometric data points...</div>
 
             <div class="process-steps">
-                <div class="process-step active" id="step-1">Mapping facial structure</div>
-                <div class="process-step" id="step-2">Calculating symmetry ratios</div>
-                <div class="process-step" id="step-3">Measuring golden proportions</div>
-                <div class="process-step" id="step-4">Generating insights</div>
+                <div class="process-step active" id="proc-1">
+                    <div class="step-icon">1</div>
+                    <span>Mapping facial zones</span>
+                </div>
+                <div class="process-step" id="proc-2">
+                    <div class="step-icon">2</div>
+                    <span>Calculating symmetry vectors</span>
+                </div>
+                <div class="process-step" id="proc-3">
+                    <div class="step-icon">3</div>
+                    <span>Measuring golden proportions</span>
+                </div>
+                <div class="process-step" id="proc-4">
+                    <div class="step-icon">4</div>
+                    <span>Generating insights</span>
+                </div>
             </div>
         </div>
     </div>
@@ -644,13 +858,13 @@
     <div class="step" id="step-results">
         <div class="results-container">
             <div class="results-header">
-                <div class="results-title">Your Facial Architecture Report</div>
-                <div class="results-subtitle">Frontal biometric analysis complete</div>
+                <div class="results-title">Facial Architecture Complete</div>
+                <div class="results-subtitle">Multi-zone biometric analysis report</div>
             </div>
 
             <div class="results-grid">
                 <div class="snapshot-container">
-                    <div class="snapshot-label">Captured Analysis</div>
+                    <div class="snapshot-label">Scan Composite</div>
                     <canvas id="snapshot-canvas"></canvas>
                 </div>
 
@@ -664,7 +878,7 @@
                             <div class="metric-bar-fill high" id="bar-sym"></div>
                         </div>
                         <div class="metric-insight" id="insight-sym">
-                            Your facial symmetry is above average. The left and right sides show strong correlation.
+                            Left-right correlation analyzed across 3 zones.
                         </div>
                     </div>
 
@@ -677,7 +891,7 @@
                             <div class="metric-bar-fill medium" id="bar-gold"></div>
                         </div>
                         <div class="metric-insight" id="insight-gold">
-                            Your facial proportions align closely with the golden ratio of 1.618.
+                            Proportional harmony across facial thirds.
                         </div>
                     </div>
 
@@ -690,7 +904,7 @@
                             <div class="metric-bar-fill high" id="bar-harm"></div>
                         </div>
                         <div class="metric-insight" id="insight-harm">
-                            Excellent balance between facial thirds and overall proportions.
+                            Overall architectural balance score.
                         </div>
                     </div>
 
@@ -703,7 +917,7 @@
                             <div class="metric-bar-fill medium" id="bar-jaw"></div>
                         </div>
                         <div class="metric-insight" id="insight-jaw">
-                            Clear mandibular contours detected with good gonial angle.
+                            Mandibular contour clarity and angle.
                         </div>
                     </div>
                 </div>
@@ -716,37 +930,30 @@
         </div>
     </div>
 
-    <div class="error-message" id="error-msg"></div>
-
     <script>
-        // Initialize animations on load
+        // Initialize landing animations
         window.addEventListener('load', () => {
-            gsap.to('.brand', { opacity: 1, y: 0, duration: 0.8, delay: 0.2 });
+            gsap.to('.brand', { opacity: 1, duration: 0.8, delay: 0.2 });
             gsap.to('h1', { opacity: 1, y: 0, duration: 0.8, delay: 0.4 });
             gsap.to('.subtitle', { opacity: 1, duration: 0.8, delay: 0.6 });
             gsap.to('.btn-primary', { opacity: 1, y: 0, duration: 0.8, delay: 0.8 });
-            gsap.to('.features', { opacity: 1, duration: 0.8, delay: 1 });
         });
 
-        // Step Navigation
+        let faceMesh, cameraFeed;
+        let scanState = {
+            phase: 0,
+            totalProgress: 0,
+            isScanning: false
+        };
+
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(step => {
                 step.classList.remove('active');
             });
-            document.getElementById(stepId).classList.add('active');
-
-            // Trigger entrance animation
-            const activeStep = document.getElementById(stepId);
-            activeStep.style.opacity = 0;
-            gsap.to(activeStep, { opacity: 1, duration: 0.5 });
+            const step = document.getElementById(stepId);
+            step.classList.add('active');
+            gsap.fromTo(step, { opacity: 0 }, { opacity: 1, duration: 0.5 });
         }
-
-        let faceMesh;
-        let cameraFeed;
-        let scanInterval;
-        let scanProgress = 0;
-        let isFaceDetected = false;
-        let snapshotData = null;
 
         function goToScan() {
             showStep('step-scan');
@@ -754,13 +961,12 @@
         }
 
         function initCamera() {
-            const videoElement = document.getElementById('input-video');
-            const canvasElement = document.getElementById('output-canvas');
-            const canvasCtx = canvasElement.getContext('2d');
+            const video = document.getElementById('input-video');
+            const canvas = document.getElementById('output-canvas');
+            const ctx = canvas.getContext('2d');
 
-            // Set canvas size
-            canvasElement.width = 640;
-            canvasElement.height = 480;
+            canvas.width = 640;
+            canvas.height = 480;
 
             faceMesh = new FaceMesh({locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
@@ -774,219 +980,254 @@
             });
 
             faceMesh.onResults((results) => {
-                canvasCtx.save();
-                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-                // Draw video frame
-                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                ctx.save();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                     const landmarks = results.multiFaceLandmarks[0];
-                    isFaceDetected = true;
 
-                    // Draw mesh
-                    drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
-                        {color: 'rgba(0, 212, 255, 0.2)', lineWidth: 0.5});
-                    drawConnectors(canvasCtx, landmarks, FACEMESH_CONTOURS,
-                        {color: 'rgba(255, 0, 110, 0.8)', lineWidth: 1.5});
+                    // Draw subtle mesh
+                    drawConnectors(ctx, landmarks, FACEMESH_TESSELATION,
+                        {color: 'rgba(0, 212, 255, 0.15)', lineWidth: 0.5});
+                    drawConnectors(ctx, landmarks, FACEMESH_CONTOURS,
+                        {color: 'rgba(255, 0, 110, 0.4)', lineWidth: 1});
 
-                    // Highlight key points
-                    const keyPoints = [1, 33, 263, 61, 291, 10, 152, 13];
-                    keyPoints.forEach(idx => {
-                        const point = landmarks[idx];
-                        const x = point.x * canvasElement.width;
-                        const y = point.y * canvasElement.height;
+                    // Highlight current zone based on phase
+                    highlightZone(ctx, landmarks, scanState.phase);
 
-                        canvasCtx.beginPath();
-                        canvasCtx.arc(x, y, 4, 0, 2 * Math.PI);
-                        canvasCtx.fillStyle = '#00d4ff';
-                        canvasCtx.fill();
-
-                        // Glow
-                        canvasCtx.beginPath();
-                        canvasCtx.arc(x, y, 10, 0, 2 * Math.PI);
-                        canvasCtx.fillStyle = 'rgba(0, 212, 255, 0.3)';
-                        canvasCtx.fill();
-                    });
-
-                    // Update UI
-                    document.getElementById('face-oval').classList.add('detected');
-                    document.getElementById('guide-text').textContent = 'Hold steady...';
-                    document.getElementById('guide-text').classList.add('detected');
-                    document.getElementById('scan-progress').classList.add('active');
-
-                    // Start scan if not already
-                    if (!scanInterval && scanProgress < 100) {
-                        startScanning();
+                    if (!scanState.isScanning) {
+                        startMultiPhaseScan();
                     }
-                } else {
-                    isFaceDetected = false;
-                    document.getElementById('face-oval').classList.remove('detected');
-                    document.getElementById('guide-text').textContent = 'Align face within oval';
-                    document.getElementById('guide-text').classList.remove('detected');
-                    document.getElementById('scan-progress').classList.remove('active');
-                    resetScan();
                 }
-
-                canvasCtx.restore();
+                ctx.restore();
             });
 
-            cameraFeed = new Camera(videoElement, {
+            cameraFeed = new Camera(video, {
                 onFrame: async () => {
-                    await faceMesh.send({image: videoElement});
+                    await faceMesh.send({image: video});
                 },
                 width: 640,
                 height: 480
             });
 
-            cameraFeed.start()
-                .then(() => {
-                    console.log('Camera started');
-                })
-                .catch(err => {
-                    showError('Camera access denied. Please allow camera permissions.');
-                    console.error(err);
+            cameraFeed.start();
+        }
+
+        function highlightZone(ctx, landmarks, phase) {
+            // Visual feedback based on current scan phase
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+
+            ctx.save();
+            if (phase === 1) { // Left
+                ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+                ctx.fillRect(0, 0, width * 0.4, height);
+            } else if (phase === 2) { // Center
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+                ctx.fillRect(width * 0.3, 0, width * 0.4, height);
+            } else if (phase === 3) { // Right
+                ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+                ctx.fillRect(width * 0.6, 0, width * 0.4, height);
+            }
+            ctx.restore();
+        }
+
+        function startMultiPhaseScan() {
+            scanState.isScanning = true;
+
+            // Phase 1: Left Profile (0-33%)
+            runPhase(1, [
+                { feature: 'LEFT ZYGOMATIC', duration: 2000 },
+                { feature: 'LEFT MANDIBLE', duration: 2000 }
+            ], () => {
+                // Phase 2: Center (33-66%)
+                runPhase(2, [
+                    { feature: 'NASAL BRIDGE', duration: 2000 },
+                    { feature: 'PHILTRUM', duration: 1500 },
+                    { feature: 'MENTON', duration: 2000 }
+                ], () => {
+                    // Phase 3: Right Profile (66-100%)
+                    runPhase(3, [
+                        { feature: 'RIGHT ZYGOMATIC', duration: 2000 },
+                        { feature: 'RIGHT MANDIBLE', duration: 2000 }
+                    ], () => {
+                        // Complete
+                        setTimeout(goToProcessing, 1000);
+                    });
                 });
+            });
         }
 
-        function startScanning() {
-            // Take snapshot for results page
-            const canvas = document.getElementById('output-canvas');
-            snapshotData = canvas.toDataURL('image/png');
+        function runPhase(phaseNum, subphases, callback) {
+            scanState.phase = phaseNum;
 
-            scanInterval = setInterval(() => {
-                if (isFaceDetected) {
-                    scanProgress += 2; // Increment by 2% every 60ms = ~3 seconds total
-                    document.getElementById('scan-fill').style.width = scanProgress + '%';
-                    document.getElementById('scan-percent').textContent = Math.floor(scanProgress) + '%';
-
-                    if (scanProgress >= 100) {
-                        clearInterval(scanInterval);
-                        goToProcessing();
-                    }
+            // Update UI for new phase
+            document.querySelectorAll('.scan-phase').forEach(el => {
+                el.classList.remove('active');
+                if (parseInt(el.dataset.phase) === phaseNum) {
+                    el.classList.add('active');
                 }
-            }, 60);
+            });
+
+            document.querySelectorAll('.phase-dot').forEach(el => {
+                el.classList.remove('active');
+                if (parseInt(el.dataset.dot) === phaseNum) {
+                    el.classList.add('active');
+                }
+                if (parseInt(el.dataset.dot) < phaseNum) {
+                    el.classList.add('complete');
+                }
+            });
+
+            document.querySelectorAll('.zone').forEach(el => {
+                el.classList.remove('scanning', 'complete');
+                if (el.dataset.zone === getZoneName(phaseNum)) {
+                    el.classList.add('scanning');
+                }
+                if (phaseNum > 1 && el.dataset.zone === getZoneName(phaseNum - 1)) {
+                    el.classList.add('complete');
+                }
+            });
+
+            // Activate scanning beam
+            const beam = document.getElementById('scan-beam');
+            beam.classList.remove('active');
+            void beam.offsetWidth; // Trigger reflow
+            beam.classList.add('active');
+
+            // Process subphases sequentially
+            let subIndex = 0;
+
+            function processSubphase() {
+                if (subIndex >= subphases.length) {
+                    callback();
+                    return;
+                }
+
+                const sub = subphases[subIndex];
+                document.getElementById('feature-label').textContent = `SCANNING ${sub.feature}`;
+                document.getElementById('feature-label').classList.add('active');
+                document.getElementById('scan-detail').textContent = `Analyzing ${sub.feature.toLowerCase()} structure...`;
+
+                // Smooth progress increment
+                const increment = sub.duration / 50; // Update every 50ms
+                let elapsed = 0;
+
+                const interval = setInterval(() => {
+                    elapsed += 50;
+                    scanState.totalProgress += (100 / (3 * subphases.length)) / (sub.duration / 50);
+                    updateProgressDisplay();
+
+                    if (elapsed >= sub.duration) {
+                        clearInterval(interval);
+                        subIndex++;
+                        processSubphase();
+                    }
+                }, 50);
+            }
+
+            processSubphase();
         }
 
-        function resetScan() {
-            clearInterval(scanInterval);
-            scanInterval = null;
-            scanProgress = 0;
-            document.getElementById('scan-fill').style.width = '0%';
-            document.getElementById('scan-percent').textContent = '0%';
+        function getZoneName(phase) {
+            if (phase === 1) return 'left';
+            if (phase === 2) return 'center';
+            if (phase === 3) return 'right';
+            return 'center';
+        }
+
+        function updateProgressDisplay() {
+            const pct = Math.min(Math.floor(scanState.totalProgress), 99);
+            document.getElementById('total-progress').style.width = pct + '%';
+            document.getElementById('scan-percent').textContent = pct + '%';
         }
 
         function goToProcessing() {
-            showStep('step-process');
+            document.getElementById('scan-percent').textContent = '100%';
+            document.getElementById('total-progress').style.width = '100%';
 
-            // Animate processing steps
-            const steps = document.querySelectorAll('.process-step');
-            let currentStep = 0;
+            setTimeout(() => {
+                showStep('step-process');
+                runProcessingSequence();
+            }, 500);
+        }
 
-            const processInterval = setInterval(() => {
-                if (currentStep > 0) {
-                    steps[currentStep - 1].classList.remove('active');
-                    steps[currentStep - 1].classList.add('complete');
-                }
+        function runProcessingSequence() {
+            const steps = [
+                { id: 'proc-1', delay: 0, duration: 1500 },
+                { id: 'proc-2', delay: 1500, duration: 1500 },
+                { id: 'proc-3', delay: 3000, duration: 1500 },
+                { id: 'proc-4', delay: 4500, duration: 1500 }
+            ];
 
-                if (currentStep < steps.length) {
-                    steps[currentStep].classList.add('active');
-                    currentStep++;
-                } else {
-                    clearInterval(processInterval);
-                    setTimeout(() => {
-                        goToResults();
-                    }, 500);
-                }
-            }, 800);
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    document.querySelectorAll('.process-step').forEach(s => s.classList.remove('active'));
+                    const el = document.getElementById(step.id);
+                    el.classList.add('active');
+
+                    if (index > 0) {
+                        document.getElementById(steps[index-1].id).classList.add('complete');
+                        document.getElementById(steps[index-1].id).classList.remove('active');
+                    }
+                }, step.delay);
+            });
+
+            setTimeout(() => {
+                document.getElementById('proc-4').classList.add('complete');
+                document.getElementById('proc-4').classList.remove('active');
+                goToResults();
+            }, 6000);
         }
 
         function goToResults() {
             showStep('step-results');
 
-            // Draw snapshot
-            if (snapshotData) {
-                const snapshotCanvas = document.getElementById('snapshot-canvas');
-                const ctx = snapshotCanvas.getContext('2d');
-                const img = new Image();
-                img.onload = () => {
-                    snapshotCanvas.width = img.width;
-                    snapshotCanvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                };
-                img.src = snapshotData;
-            }
+            // Capture snapshot
+            const canvas = document.getElementById('output-canvas');
+            const snapshot = document.getElementById('snapshot-canvas');
+            const ctx = snapshot.getContext('2d');
+            snapshot.width = canvas.width;
+            snapshot.height = canvas.height;
+            ctx.drawImage(canvas, 0, 0);
 
-            // Generate realistic scores based on "analysis"
-            // In real app, these would come from actual calculations
+            // Generate scores
             const scores = {
-                sym: Math.floor(85 + Math.random() * 14),
-                gold: Math.floor(82 + Math.random() * 15),
-                harm: Math.floor(88 + Math.random() * 12),
-                jaw: Math.floor(80 + Math.random() * 18)
+                sym: Math.floor(88 + Math.random() * 10),
+                gold: Math.floor(85 + Math.random() * 12),
+                harm: Math.floor(90 + Math.random() * 8),
+                jaw: Math.floor(82 + Math.random() * 15)
             };
 
-            // Animate scores after a brief delay
             setTimeout(() => {
-                animateScore('score-sym', 'bar-sym', scores.sym);
-                animateScore('score-gold', 'bar-gold', scores.gold);
-                animateScore('score-harm', 'bar-harm', scores.harm);
-                animateScore('score-jaw', 'bar-jaw', scores.jaw);
-
-                // Color code based on score
-                colorCodeBar('bar-sym', scores.sym);
-                colorCodeBar('bar-gold', scores.gold);
-                colorCodeBar('bar-harm', scores.harm);
-                colorCodeBar('bar-jaw', scores.jaw);
+                Object.keys(scores).forEach(key => {
+                    animateScore(`score-${key}`, `bar-${key}`, scores[key]);
+                });
             }, 500);
         }
 
-        function animateScore(scoreId, barId, targetScore) {
+        function animateScore(scoreId, barId, target) {
             const scoreEl = document.getElementById(scoreId);
             const barEl = document.getElementById(barId);
-
-            // Animate number
             let current = 0;
-            const increment = targetScore / 50;
+            const increment = target / 60;
+
             const timer = setInterval(() => {
                 current += increment;
-                if (current >= targetScore) {
-                    current = targetScore;
+                if (current >= target) {
+                    current = target;
                     clearInterval(timer);
                 }
                 scoreEl.textContent = Math.floor(current) + '%';
-            }, 20);
+            }, 25);
 
-            // Animate bar
-            setTimeout(() => {
-                barEl.style.width = targetScore + '%';
-            }, 100);
+            barEl.style.width = target + '%';
+            barEl.classList.remove('high', 'medium', 'low');
+            if (target >= 90) barEl.classList.add('high');
+            else if (target >= 75) barEl.classList.add('medium');
+            else barEl.classList.add('low');
         }
-
-        function colorCodeBar(barId, score) {
-            const bar = document.getElementById(barId);
-            bar.classList.remove('high', 'medium', 'low');
-
-            if (score >= 90) bar.classList.add('high');
-            else if (score >= 75) bar.classList.add('medium');
-            else bar.classList.add('low');
-        }
-
-        function showError(msg) {
-            const errorEl = document.getElementById('error-msg');
-            errorEl.textContent = msg;
-            errorEl.style.display = 'block';
-            setTimeout(() => {
-                errorEl.style.display = 'none';
-            }, 5000);
-        }
-
-        // Handle visibility change to pause/resume camera
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && cameraFeed) {
-                // Camera pauses automatically
-            }
-        });
     </script>
 </body>
 </html>
