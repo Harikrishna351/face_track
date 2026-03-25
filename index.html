@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FaceArchitect | Singularity</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <title>FaceArchitect | Biometric Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #00d4ff;
             --secondary: #ff006e;
-            --tertiary: #8338ec;
-            --bg: #050505;
+            --accent: #ffd700;
+            --bg: #0a0a0f;
             --surface: rgba(255, 255, 255, 0.03);
-            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         * {
@@ -31,871 +29,739 @@
             font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: white;
-            overflow-x: hidden;
-            cursor: none;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
         }
 
-        .cursor {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--primary);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999;
-            transition: transform 0.15s var(--ease-out-expo), opacity 0.15s;
-            mix-blend-mode: difference;
-        }
-
-        .cursor.hovered {
-            transform: scale(3);
-            border-color: var(--secondary);
-            background: rgba(255, 0, 110, 0.1);
-        }
-
-        .cursor-dot {
-            position: fixed;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999;
-        }
-
-        /* Loader */
-        #loader {
+        /* Background Grid */
+        .bg-grid {
             position: fixed;
             inset: 0;
-            background: var(--bg);
-            z-index: 10000;
-            display: flex;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* STEP CONTAINERS */
+        .step {
+            position: absolute;
+            inset: 0;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 2rem;
-        }
-
-        .loader-text {
-            font-family: 'Syncopate', sans-serif;
-            font-size: 0.875rem;
-            letter-spacing: 0.5em;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .loader-bar {
-            width: 200px;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loader-progress {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 20px var(--primary);
-        }
-
-        /* Shader Background */
-        #shader-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.6;
-        }
-
-        /* Navigation */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
             padding: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            background: linear-gradient(to bottom, rgba(5,5,5,0.8), transparent);
-            backdrop-filter: blur(10px);
-            transform: translateY(-100%);
             opacity: 0;
         }
 
-        .logo {
-            font-family: 'Syncopate', sans-serif;
-            font-weight: 700;
-            font-size: 1.25rem;
-            letter-spacing: 0.2em;
-            background: linear-gradient(135deg, white, rgba(255,255,255,0.6));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
+        .step.active {
             display: flex;
-            gap: 3rem;
-            list-style: none;
+            opacity: 1;
         }
 
-        .nav-links a {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
+        /* STEP 1: LANDING */
+        #step-landing {
+            text-align: center;
+        }
+
+        .brand {
+            font-family: 'Space Grotesk', sans-serif;
             font-size: 0.875rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            transition: color 0.3s;
-            position: relative;
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 1px;
-            background: var(--primary);
-            transition: width 0.3s var(--ease-out-expo);
-        }
-
-        .nav-links a:hover {
-            color: white;
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        /* Main Layout */
-        .hero {
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: center;
-            padding: 0 5vw;
-            position: relative;
-            gap: 4rem;
-        }
-
-        .hero-content {
-            z-index: 10;
-            opacity: 0;
-            transform: translateY(50px);
-        }
-
-        .eyebrow {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.75rem;
             letter-spacing: 0.3em;
             color: var(--primary);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .eyebrow::before {
-            content: '';
-            width: 40px;
-            height: 1px;
-            background: var(--primary);
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         h1 {
-            font-size: clamp(3rem, 6vw, 5rem);
-            line-height: 1.1;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
             font-weight: 300;
+            line-height: 1.1;
             margin-bottom: 1.5rem;
-            letter-spacing: -0.02em;
+            max-width: 800px;
+            opacity: 0;
+            transform: translateY(30px);
         }
 
-        h1 .highlight {
-            font-weight: 600;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        h1 span {
+            color: var(--primary);
+            font-weight: 500;
         }
 
         .subtitle {
             font-size: 1.125rem;
-            line-height: 1.6;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255, 255, 255, 0.6);
             max-width: 500px;
+            line-height: 1.6;
             margin-bottom: 3rem;
+            opacity: 0;
         }
 
-        /* Camera Interface Container */
-        .interface-3d {
+        .btn-primary {
+            background: white;
+            color: black;
+            border: none;
+            padding: 1.25rem 3rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 100px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .features {
+            display: flex;
+            gap: 3rem;
+            margin-top: 4rem;
+            opacity: 0;
+        }
+
+        .feature {
+            text-align: center;
+        }
+
+        .feature-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .feature-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 0.5rem;
+        }
+
+        /* STEP 2: SCANNING */
+        #step-scan {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .scan-header {
+            position: absolute;
+            top: 2rem;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .scan-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.5rem;
+        }
+
+        .scan-subtitle {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .camera-container {
             position: relative;
-            height: 80vh;
-            width: 100%;
-            opacity: 0;
-            transform: scale(0.9);
-            border-radius: 24px;
-            overflow: hidden;
-        }
-
-        #three-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 24px;
-            z-index: 1;
-        }
-
-        /* Camera Feed Container - Initially Hidden */
-        #camera-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            opacity: 0;
-            transform: scale(1.1);
-            border-radius: 24px;
-            overflow: hidden;
+            width: 640px;
+            height: 480px;
+            max-width: 90vw;
+            max-height: 70vh;
             background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 60px rgba(0, 212, 255, 0.1);
+        }
+
+        #input-video {
+            display: none;
         }
 
         #output-canvas {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror effect */
-            border-radius: 24px;
+            transform: scaleX(-1); /* Mirror */
         }
 
-        #input-video {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Scan Interface Overlay */
-        .scan-interface {
+        /* Face Guide Overlay */
+        .face-guide {
             position: absolute;
             inset: 0;
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 24px;
-            overflow: hidden;
-            z-index: 3;
-        }
-
-        .scan-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-            box-shadow: 0 0 30px var(--primary);
-            opacity: 0;
-            z-index: 10;
-        }
-
-        .scanning .scan-line {
-            animation: scanMove 3s ease-in-out infinite;
-            opacity: 1;
-        }
-
-        @keyframes scanMove {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-
-        .corner-bracket {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 2px solid var(--primary);
-            opacity: 0.5;
-            z-index: 10;
-        }
-
-        .corner-bracket.tl { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
-        .corner-bracket.tr { top: 20px; right: 20px; border-left: 0; border-bottom: 0; }
-        .corner-bracket.bl { bottom: 20px; left: 20px; border-right: 0; border-top: 0; }
-        .corner-bracket.br { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
-
-        .hud-text {
-            position: absolute;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 0.1em;
-            z-index: 10;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-        }
-
-        .hud-text.tl { top: 30px; left: 70px; }
-        .hud-text.tr { top: 30px; right: 70px; text-align: right; }
-        .hud-text.bl { bottom: 30px; left: 70px; }
-        .hud-text.br { bottom: 30px; right: 70px; text-align: right; }
-
-        .face-status {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: 'Space Mono', monospace;
-            font-size: 0.875rem;
-            color: var(--primary);
-            letter-spacing: 0.2em;
-            opacity: 0;
-            z-index: 10;
-            text-align: center;
-            background: rgba(0,0,0,0.6);
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .face-status.active {
-            opacity: 1;
-        }
-
-        /* Magnetic Button */
-        .magnetic-btn {
-            position: relative;
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1.25rem 2.5rem;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.875rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            cursor: none;
-            overflow: hidden;
-            transition: all 0.3s var(--ease-out-expo);
+            justify-content: center;
         }
 
-        .magnetic-btn::before {
-            content: '';
+        .guide-oval {
+            width: 280px;
+            height: 380px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .guide-oval.detected {
+            border-color: var(--primary);
+            border-style: solid;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .guide-text {
             position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .guide-text.detected {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Scan Progress */
+        .scan-progress-container {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
             opacity: 0;
             transition: opacity 0.3s;
         }
 
-        .magnetic-btn:hover::before {
+        .scan-progress-container.active {
             opacity: 1;
         }
 
-        .magnetic-btn span {
-            position: relative;
-            z-index: 1;
+        .scan-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
         }
 
-        .magnetic-btn:hover {
-            border-color: transparent;
-            transform: scale(1.05);
-            box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        .scan-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.1s linear;
         }
 
-        /* Analysis Overlay */
-        .analysis-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            z-index: 200;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 2rem;
-            backdrop-filter: blur(20px);
+        .scan-percentage {
+            text-align: center;
+            margin-top: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            color: white;
         }
 
-        .analysis-overlay.active {
-            display: flex;
+        /* Corner Brackets */
+        .corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: rgba(255, 255, 255, 0.3);
+            border-style: solid;
+            border-width: 0;
         }
 
-        .processing-ring {
+        .corner.tl { top: 20px; left: 20px; border-top-width: 2px; border-left-width: 2px; }
+        .corner.tr { top: 20px; right: 20px; border-top-width: 2px; border-right-width: 2px; }
+        .corner.bl { bottom: 20px; left: 20px; border-bottom-width: 2px; border-left-width: 2px; }
+        .corner.br { bottom: 20px; right: 20px; border-bottom-width: 2px; border-right-width: 2px; }
+
+        /* STEP 3: PROCESSING */
+        #step-process {
+            background: var(--bg);
+        }
+
+        .process-container {
+            text-align: center;
+        }
+
+        .process-icon {
             width: 120px;
             height: 120px;
-            border: 2px solid rgba(255,255,255,0.1);
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .process-ring {
+            position: absolute;
+            inset: 0;
+            border: 3px solid transparent;
             border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+        }
+
+        .process-ring:nth-child(2) {
+            inset: 10px;
+            border-top-color: var(--secondary);
+            animation-duration: 1.5s;
+            animation-direction: reverse;
+        }
+
+        .process-ring:nth-child(3) {
+            inset: 20px;
+            border-top-color: var(--accent);
+            animation-duration: 2s;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .processing-text {
-            font-family: 'Space Mono', monospace;
-            letter-spacing: 0.3em;
-            color: rgba(255,255,255,0.6);
-        }
-
-        /* Results Dashboard */
-        .dashboard {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 400px;
-            height: 100vh;
-            background: rgba(5, 5, 5, 0.95);
-            backdrop-filter: blur(30px);
-            border-left: 1px solid rgba(255,255,255,0.1);
-            padding: 6rem 2rem 2rem;
-            transform: translateX(100%);
-            z-index: 50;
-            overflow-y: auto;
-            transition: transform 0.6s var(--ease-out-expo);
-        }
-
-        .dashboard.active {
-            transform: translateX(0);
-        }
-
-        .metric-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 1.5rem;
+        .process-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
             margin-bottom: 1rem;
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s var(--ease-out-expo), border-color 0.3s;
+            letter-spacing: 0.1em;
         }
 
-        .metric-card:hover {
-            transform: translateX(-5px);
-            border-color: var(--primary);
+        .process-detail {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+            margin-bottom: 3rem;
         }
 
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(to bottom, var(--primary), var(--secondary));
-            opacity: 0;
-            transition: opacity 0.3s;
+        .process-steps {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: left;
         }
 
-        .metric-card:hover::before {
-            opacity: 1;
+        .process-step {
+            padding: 1rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.875rem;
+            transition: all 0.3s;
         }
 
-        .metric-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            color: rgba(255,255,255,0.5);
+        .process-step.active {
+            border-left-color: var(--primary);
+            color: white;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .process-step.complete {
+            border-left-color: var(--accent);
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* STEP 4: RESULTS */
+        #step-results {
+            background: var(--bg);
+            overflow-y: auto;
+            padding: 4rem 2rem;
+        }
+
+        .results-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .results-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
             margin-bottom: 0.5rem;
         }
 
-        .metric-value {
-            font-size: 2rem;
-            font-weight: 300;
-            letter-spacing: -0.02em;
+        .results-subtitle {
+            color: rgba(255, 255, 255, 0.6);
         }
 
-        .metric-bar {
-            width: 100%;
-            height: 2px;
-            background: rgba(255,255,255,0.1);
-            margin-top: 1rem;
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        @media (max-width: 968px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Snapshot Display */
+        .snapshot-container {
             position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .snapshot-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        #snapshot-canvas {
+            width: 100%;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        /* Metrics Panel */
+        .metrics-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-name {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .metric-score {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .metric-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
             overflow: hidden;
         }
 
-        .metric-fill {
-            position: absolute;
-            left: 0;
-            top: 0;
+        .metric-bar-fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 10px var(--primary);
-            transition: width 1.5s var(--ease-out-expo);
+            border-radius: 3px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        @media (max-width: 1024px) {
-            .hero {
-                grid-template-columns: 1fr;
-                padding-top: 100px;
-            }
-            .interface-3d {
-                height: 50vh;
-                order: -1;
-            }
-            .dashboard {
-                width: 100%;
-            }
-            body {
-                cursor: auto;
-            }
-            .cursor, .cursor-dot {
-                display: none;
-            }
+        .metric-bar-fill.high { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .metric-bar-fill.medium { background: linear-gradient(90deg, #eab308, #facc15); }
+        .metric-bar-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        .metric-insight {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 3rem;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: white;
+        }
+
+        /* Utility */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Error Message */
+        .error-message {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
 
-    <!-- Custom Cursor -->
-    <div class="cursor"></div>
-    <div class="cursor-dot"></div>
+    <div class="bg-grid"></div>
 
-    <!-- Loader -->
-    <div id="loader">
-        <div class="loader-text">INITIALIZING BIOMETRIC ENGINE</div>
-        <div class="loader-bar">
-            <div class="loader-progress"></div>
+    <!-- STEP 1: LANDING -->
+    <div class="step active" id="step-landing">
+        <div class="brand">FACEARCHITECT // BIOMETRIC ANALYSIS</div>
+        <h1>Discover your <span>facial architecture</span> score</h1>
+        <p class="subtitle">
+            Advanced frontal face mapping analyzing 468 biometric landmarks.
+            Get detailed insights on symmetry, proportions, and aesthetic harmony.
+        </p>
+        <button class="btn-primary" onclick="goToScan()">
+            Begin Analysis
+        </button>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-number">468</div>
+                <div class="feature-label">LANDMARKS</div>
+            </div>
+            <div class="feature">
+                <div class="feature-number">4</div>
+                <div class="feature-label">METRICS</div>
+            </div>
+            <div class="feature">
+                <div class="feature-number">100%</div>
+                <div class="feature-label">PRIVATE</div>
+            </div>
         </div>
     </div>
 
-    <!-- Shader Background -->
-    <canvas id="shader-canvas"></canvas>
-
-    <!-- Navigation -->
-    <nav>
-        <div class="logo">FACEARCHITECT</div>
-        <ul class="nav-links">
-            <li><a href="#" class="magnetic-link">Analysis</a></li>
-            <li><a href="#" class="magnetic-link">Gallery</a></li>
-            <li><a href="#" class="magnetic-link">Pro</a></li>
-            <li><a href="#" class="magnetic-link">About</a></li>
-        </ul>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <div class="eyebrow">BIOMETRIC ARCHITECTURE // v2.0</div>
-            <h1>Quantify your <span class="highlight">aesthetic</span> potential</h1>
-            <p class="subtitle">Advanced facial mapping technology analyzing 468 biometric landmarks to determine your facial symmetry, golden ratio compliance, and architectural harmony.</p>
-            <button class="magnetic-btn" onclick="startAnalysis()">
-                <span>Begin Scan</span>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </button>
+    <!-- STEP 2: SCANNING -->
+    <div class="step" id="step-scan">
+        <div class="scan-header">
+            <div class="scan-title">FRONTAL BIOMETRIC SCAN</div>
+            <div class="scan-subtitle">Position your face within the guide | Keep still for 3 seconds</div>
         </div>
 
-        <div class="interface-3d">
-            <!-- Three.js Placeholder Canvas -->
-            <canvas id="three-canvas"></canvas>
+        <div class="camera-container">
+            <video id="input-video" playsinline></video>
+            <canvas id="output-canvas"></canvas>
 
-            <!-- Camera Feed Container (Hidden initially) -->
-            <div id="camera-container">
-                <video id="input-video" playsinline></video>
-                <canvas id="output-canvas"></canvas>
-            </div>
-
-            <!-- Scan Interface Overlay -->
-            <div class="scan-interface">
-                <div class="scan-line"></div>
-                <div class="corner-bracket tl"></div>
-                <div class="corner-bracket tr"></div>
-                <div class="corner-bracket bl"></div>
-                <div class="corner-bracket br"></div>
-                <div class="hud-text tl">CAM_01 // FRONT_FACING</div>
-                <div class="hud-text tr">FPS: 60</div>
-                <div class="hud-text bl">LND: <span id="landmark-count">000</span></div>
-                <div class="hud-text br">ISO: 400</div>
-
-                <div class="face-status" id="face-status">
-                    <div style="color: var(--primary); margin-bottom: 0.5rem;">● DETECTED</div>
-                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">FACE MESH LOCKED</div>
+            <!-- Face Guide -->
+            <div class="face-guide">
+                <div class="guide-oval" id="face-oval">
+                    <div class="guide-text" id="guide-text">Align face within oval</div>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!-- Analysis Overlay -->
-    <div class="analysis-overlay" id="analysis-overlay">
-        <div class="processing-ring"></div>
-        <div class="processing-text">CALCULATING BIOMETRICS...</div>
-        <div style="width: 300px; height: 2px; background: rgba(255,255,255,0.1); margin-top: 1rem;">
-            <div style="width: 0%; height: 100%; background: var(--primary); transition: width 2s;" id="progress-bar"></div>
+            <!-- Corners -->
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+
+            <!-- Scan Progress -->
+            <div class="scan-progress-container" id="scan-progress">
+                <div class="scan-bar-bg">
+                    <div class="scan-bar-fill" id="scan-fill"></div>
+                </div>
+                <div class="scan-percentage" id="scan-percent">0%</div>
+            </div>
         </div>
     </div>
 
-    <!-- Results Dashboard -->
-    <div class="dashboard" id="dashboard">
-        <div style="margin-bottom: 3rem;">
-            <div class="eyebrow">ANALYSIS COMPLETE</div>
-            <h2 style="font-size: 1.5rem; font-weight: 300;">Subject Profile</h2>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">SYMMETRY INDEX</div>
-            <div class="metric-value" id="sym-score">--%</div>
-            <div class="metric-bar">
-                <div class="metric-fill" id="sym-bar"></div>
+    <!-- STEP 3: PROCESSING -->
+    <div class="step" id="step-process">
+        <div class="process-container">
+            <div class="process-icon">
+                <div class="process-ring"></div>
+                <div class="process-ring"></div>
+                <div class="process-ring"></div>
             </div>
-        </div>
+            <div class="process-title">PROCESSING BIOMETRICS</div>
+            <div class="process-detail">Analyzing 468 facial landmarks...</div>
 
-        <div class="metric-card">
-            <div class="metric-label">GOLDEN RATIO</div>
-            <div class="metric-value" id="gold-score">--%</div>
-            <div class="metric-bar">
-                <div class="metric-fill" id="gold-bar"></div>
+            <div class="process-steps">
+                <div class="process-step active" id="step-1">Mapping facial structure</div>
+                <div class="process-step" id="step-2">Calculating symmetry ratios</div>
+                <div class="process-step" id="step-3">Measuring golden proportions</div>
+                <div class="process-step" id="step-4">Generating insights</div>
             </div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">FACIAL HARMONY</div>
-            <div class="metric-value" id="harm-score">--%</div>
-            <div class="metric-bar">
-                <div class="metric-fill" id="harm-bar"></div>
-            </div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">JAWLINE DEFINITION</div>
-            <div class="metric-value" id="jaw-score">--%</div>
-            <div class="metric-bar">
-                <div class="metric-fill" id="jaw-bar"></div>
-            </div>
-        </div>
-
-        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
-            <button class="magnetic-btn" style="width: 100%; justify-content: center;">
-                <span>Export Report</span>
-            </button>
         </div>
     </div>
+
+    <!-- STEP 4: RESULTS -->
+    <div class="step" id="step-results">
+        <div class="results-container">
+            <div class="results-header">
+                <div class="results-title">Your Facial Architecture Report</div>
+                <div class="results-subtitle">Frontal biometric analysis complete</div>
+            </div>
+
+            <div class="results-grid">
+                <div class="snapshot-container">
+                    <div class="snapshot-label">Captured Analysis</div>
+                    <canvas id="snapshot-canvas"></canvas>
+                </div>
+
+                <div class="metrics-panel">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-name">Symmetry Index</div>
+                            <div class="metric-score" id="score-sym">--</div>
+                        </div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill high" id="bar-sym"></div>
+                        </div>
+                        <div class="metric-insight" id="insight-sym">
+                            Your facial symmetry is above average. The left and right sides show strong correlation.
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-name">Golden Ratio (φ)</div>
+                            <div class="metric-score" id="score-gold">--</div>
+                        </div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill medium" id="bar-gold"></div>
+                        </div>
+                        <div class="metric-insight" id="insight-gold">
+                            Your facial proportions align closely with the golden ratio of 1.618.
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-name">Facial Harmony</div>
+                            <div class="metric-score" id="score-harm">--</div>
+                        </div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill high" id="bar-harm"></div>
+                        </div>
+                        <div class="metric-insight" id="insight-harm">
+                            Excellent balance between facial thirds and overall proportions.
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-name">Jawline Definition</div>
+                            <div class="metric-score" id="score-jaw">--</div>
+                        </div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill medium" id="bar-jaw"></div>
+                        </div>
+                        <div class="metric-insight" id="insight-jaw">
+                            Clear mandibular contours detected with good gonial angle.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn-secondary" onclick="location.reload()">New Analysis</button>
+                <button class="btn-primary">Download Report</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-message" id="error-msg"></div>
 
     <script>
-        // Loading Sequence
+        // Initialize animations on load
         window.addEventListener('load', () => {
-            const tl = gsap.timeline();
-
-            tl.to('.loader-progress', {
-                width: '100%',
-                duration: 2,
-                ease: 'power2.inOut'
-            })
-            .to('#loader', {
-                opacity: 0,
-                duration: 0.5,
-                onComplete: () => {
-                    document.getElementById('loader').style.display = 'none';
-                }
-            })
-            .to('nav', {
-                y: 0,
-                opacity: 1,
-                duration: 1,
-                ease: 'expo.out'
-            })
-            .to('.hero-content', {
-                y: 0,
-                opacity: 1,
-                duration: 1.2,
-                ease: 'expo.out'
-            }, '-=0.5')
-            .to('.interface-3d', {
-                scale: 1,
-                opacity: 1,
-                duration: 1.5,
-                ease: 'expo.out'
-            }, '-=0.8');
+            gsap.to('.brand', { opacity: 1, y: 0, duration: 0.8, delay: 0.2 });
+            gsap.to('h1', { opacity: 1, y: 0, duration: 0.8, delay: 0.4 });
+            gsap.to('.subtitle', { opacity: 1, duration: 0.8, delay: 0.6 });
+            gsap.to('.btn-primary', { opacity: 1, y: 0, duration: 0.8, delay: 0.8 });
+            gsap.to('.features', { opacity: 1, duration: 0.8, delay: 1 });
         });
 
-        // Custom Cursor
-        const cursor = document.querySelector('.cursor');
-        const cursorDot = document.querySelector('.cursor-dot');
-
-        document.addEventListener('mousemove', (e) => {
-            gsap.to(cursor, {
-                x: e.clientX - 10,
-                y: e.clientY - 10,
-                duration: 0.1
+        // Step Navigation
+        function showStep(stepId) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
             });
-            gsap.to(cursorDot, {
-                x: e.clientX - 2,
-                y: e.clientY - 2,
-                duration: 0.5
-            });
-        });
+            document.getElementById(stepId).classList.add('active');
 
-        document.querySelectorAll('button, a, .magnetic-btn').forEach(el => {
-            el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
-            el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
-        });
-
-        // Magnetic Effect
-        document.querySelectorAll('.magnetic-btn').forEach(btn => {
-            btn.addEventListener('mousemove', (e) => {
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-
-                gsap.to(btn, {
-                    x: x * 0.3,
-                    y: y * 0.3,
-                    duration: 0.3,
-                    ease: 'power2.out'
-                });
-            });
-
-            btn.addEventListener('mouseleave', () => {
-                gsap.to(btn, {
-                    x: 0,
-                    y: 0,
-                    duration: 0.3,
-                    ease: 'elastic.out(1, 0.5)'
-                });
-            });
-        });
-
-        // WebGL Shader Background (Simplified for brevity)
-        const shaderCanvas = document.getElementById('shader-canvas');
-        const gl = shaderCanvas.getContext('webgl');
-
-        function resizeCanvas() {
-            shaderCanvas.width = window.innerWidth;
-            shaderCanvas.height = window.innerHeight;
-            gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+            // Trigger entrance animation
+            const activeStep = document.getElementById(stepId);
+            activeStep.style.opacity = 0;
+            gsap.to(activeStep, { opacity: 1, duration: 0.5 });
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
 
-        // Three.js Placeholder
-        const threeCanvas = document.getElementById('three-canvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, threeCanvas.clientWidth / threeCanvas.clientHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: true, antialias: true });
-        renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        const geometry = new THREE.IcosahedronGeometry(2, 2);
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x00d4ff,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.3
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-        scene.add(sphere);
-
-        camera.position.z = 5;
-
-        function animatePlaceholder() {
-            requestAnimationFrame(animatePlaceholder);
-            sphere.rotation.y += 0.002;
-            renderer.render(scene, camera);
-        }
-        animatePlaceholder();
-
-        // MediaPipe Face Mesh Setup
         let faceMesh;
         let cameraFeed;
-        const videoElement = document.getElementById('input-video');
-        const canvasElement = document.getElementById('output-canvas');
-        const canvasCtx = canvasElement.getContext('2d');
-        const cameraContainer = document.getElementById('camera-container');
-        const threeCanvasEl = document.getElementById('three-canvas');
+        let scanInterval;
+        let scanProgress = 0;
+        let isFaceDetected = false;
+        let snapshotData = null;
 
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-            // Draw video frame
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks = results.multiFaceLandmarks[0];
-
-                // Draw face mesh with neon effect
-                drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
-                    {color: 'rgba(0, 212, 255, 0.3)', lineWidth: 0.5});
-                drawConnectors(canvasCtx, landmarks, FACEMESH_CONTOURS,
-                    {color: 'rgba(255, 0, 110, 0.8)', lineWidth: 1});
-                drawConnectors(canvasCtx, landmarks, FACEMESH_FACE_OVAL,
-                    {color: 'rgba(0, 212, 255, 0.8)', lineWidth: 2});
-
-                // Draw key landmarks as glowing dots
-                const keyPoints = [1, 33, 263, 61, 291, 10, 152];
-                for (let i of keyPoints) {
-                    const point = landmarks[i];
-                    const x = point.x * canvasElement.width;
-                    const y = point.y * canvasElement.height;
-
-                    canvasCtx.beginPath();
-                    canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
-                    canvasCtx.fillStyle = '#00d4ff';
-                    canvasCtx.fill();
-
-                    // Glow effect
-                    canvasCtx.beginPath();
-                    canvasCtx.arc(x, y, 8, 0, 2 * Math.PI);
-                    canvasCtx.fillStyle = 'rgba(0, 212, 255, 0.3)';
-                    canvasCtx.fill();
-                }
-
-                // Update HUD
-                document.getElementById('landmark-count').textContent = '468';
-                document.getElementById('face-status').classList.add('active');
-
-                // Auto-analyze after 3 seconds of stable face
-                if (!window.analysisStarted) {
-                    window.analysisStarted = true;
-                    setTimeout(() => {
-                        calculateMetrics();
-                    }, 2000);
-                }
-            } else {
-                document.getElementById('landmark-count').textContent = '000';
-                document.getElementById('face-status').classList.remove('active');
-            }
-
-            canvasCtx.restore();
+        function goToScan() {
+            showStep('step-scan');
+            initCamera();
         }
 
-        function startAnalysis() {
-            window.analysisStarted = false;
+        function initCamera() {
+            const videoElement = document.getElementById('input-video');
+            const canvasElement = document.getElementById('output-canvas');
+            const canvasCtx = canvasElement.getContext('2d');
 
-            // Transition: Hide Three.js, Show Camera
-            gsap.to(threeCanvasEl, {
-                opacity: 0,
-                scale: 0.8,
-                duration: 0.8,
-                ease: 'power2.in',
-                onComplete: () => {
-                    threeCanvasEl.style.display = 'none';
-                }
-            });
+            // Set canvas size
+            canvasElement.width = 640;
+            canvasElement.height = 480;
 
-            gsap.to(cameraContainer, {
-                opacity: 1,
-                scale: 1,
-                duration: 0.8,
-                delay: 0.3,
-                ease: 'expo.out'
-            });
-
-            // Initialize MediaPipe
             faceMesh = new FaceMesh({locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
             }});
@@ -907,92 +773,219 @@
                 minTrackingConfidence: 0.5
             });
 
-            faceMesh.onResults(onResults);
+            faceMesh.onResults((results) => {
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            // Start Camera
+                // Draw video frame
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                    const landmarks = results.multiFaceLandmarks[0];
+                    isFaceDetected = true;
+
+                    // Draw mesh
+                    drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
+                        {color: 'rgba(0, 212, 255, 0.2)', lineWidth: 0.5});
+                    drawConnectors(canvasCtx, landmarks, FACEMESH_CONTOURS,
+                        {color: 'rgba(255, 0, 110, 0.8)', lineWidth: 1.5});
+
+                    // Highlight key points
+                    const keyPoints = [1, 33, 263, 61, 291, 10, 152, 13];
+                    keyPoints.forEach(idx => {
+                        const point = landmarks[idx];
+                        const x = point.x * canvasElement.width;
+                        const y = point.y * canvasElement.height;
+
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(x, y, 4, 0, 2 * Math.PI);
+                        canvasCtx.fillStyle = '#00d4ff';
+                        canvasCtx.fill();
+
+                        // Glow
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(x, y, 10, 0, 2 * Math.PI);
+                        canvasCtx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+                        canvasCtx.fill();
+                    });
+
+                    // Update UI
+                    document.getElementById('face-oval').classList.add('detected');
+                    document.getElementById('guide-text').textContent = 'Hold steady...';
+                    document.getElementById('guide-text').classList.add('detected');
+                    document.getElementById('scan-progress').classList.add('active');
+
+                    // Start scan if not already
+                    if (!scanInterval && scanProgress < 100) {
+                        startScanning();
+                    }
+                } else {
+                    isFaceDetected = false;
+                    document.getElementById('face-oval').classList.remove('detected');
+                    document.getElementById('guide-text').textContent = 'Align face within oval';
+                    document.getElementById('guide-text').classList.remove('detected');
+                    document.getElementById('scan-progress').classList.remove('active');
+                    resetScan();
+                }
+
+                canvasCtx.restore();
+            });
+
             cameraFeed = new Camera(videoElement, {
                 onFrame: async () => {
                     await faceMesh.send({image: videoElement});
                 },
-                width: 1280,
-                height: 720
+                width: 640,
+                height: 480
             });
 
             cameraFeed.start()
                 .then(() => {
-                    // Set canvas size to match video
-                    canvasElement.width = 1280;
-                    canvasElement.height = 720;
-
-                    // Add scanning effect
-                    document.querySelector('.scan-interface').classList.add('scanning');
+                    console.log('Camera started');
                 })
                 .catch(err => {
-                    console.error("Camera error:", err);
-                    alert("Please allow camera access to use the biometric scanner");
+                    showError('Camera access denied. Please allow camera permissions.');
+                    console.error(err);
                 });
         }
 
-        function calculateMetrics() {
-            // Show analysis overlay
-            document.getElementById('analysis-overlay').classList.add('active');
+        function startScanning() {
+            // Take snapshot for results page
+            const canvas = document.getElementById('output-canvas');
+            snapshotData = canvas.toDataURL('image/png');
 
-            // Animate progress bar
-            setTimeout(() => {
-                document.getElementById('progress-bar').style.width = '100%';
-            }, 100);
+            scanInterval = setInterval(() => {
+                if (isFaceDetected) {
+                    scanProgress += 2; // Increment by 2% every 60ms = ~3 seconds total
+                    document.getElementById('scan-fill').style.width = scanProgress + '%';
+                    document.getElementById('scan-percent').textContent = Math.floor(scanProgress) + '%';
 
-            // Simulate calculation time then show results
-            setTimeout(() => {
-                document.getElementById('analysis-overlay').classList.remove('active');
-                document.getElementById('dashboard').classList.add('active');
-
-                // Animate metrics
-                setTimeout(() => {
-                    const scores = {
-                        'sym-bar': 94,
-                        'gold-bar': 87,
-                        'harm-bar': 91,
-                        'jaw-bar': 83
-                    };
-
-                    Object.keys(scores).forEach(id => {
-                        document.getElementById(id).style.width = scores[id] + '%';
-                    });
-
-                    animateValue(document.getElementById('sym-score'), 0, 94, 1500);
-                    animateValue(document.getElementById('gold-score'), 0, 87, 1500);
-                    animateValue(document.getElementById('harm-score'), 0, 91, 1500);
-                    animateValue(document.getElementById('jaw-score'), 0, 83, 1500);
-                }, 300);
-
-            }, 2500);
+                    if (scanProgress >= 100) {
+                        clearInterval(scanInterval);
+                        goToProcessing();
+                    }
+                }
+            }, 60);
         }
 
-        function animateValue(element, start, end, duration) {
-            const range = end - start;
-            const startTime = performance.now();
+        function resetScan() {
+            clearInterval(scanInterval);
+            scanInterval = null;
+            scanProgress = 0;
+            document.getElementById('scan-fill').style.width = '0%';
+            document.getElementById('scan-percent').textContent = '0%';
+        }
 
-            function update(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-                const current = Math.floor(start + (range * easeProgress));
+        function goToProcessing() {
+            showStep('step-process');
 
-                element.textContent = current + '%';
+            // Animate processing steps
+            const steps = document.querySelectorAll('.process-step');
+            let currentStep = 0;
 
-                if (progress < 1) {
-                    requestAnimationFrame(update);
+            const processInterval = setInterval(() => {
+                if (currentStep > 0) {
+                    steps[currentStep - 1].classList.remove('active');
+                    steps[currentStep - 1].classList.add('complete');
                 }
+
+                if (currentStep < steps.length) {
+                    steps[currentStep].classList.add('active');
+                    currentStep++;
+                } else {
+                    clearInterval(processInterval);
+                    setTimeout(() => {
+                        goToResults();
+                    }, 500);
+                }
+            }, 800);
+        }
+
+        function goToResults() {
+            showStep('step-results');
+
+            // Draw snapshot
+            if (snapshotData) {
+                const snapshotCanvas = document.getElementById('snapshot-canvas');
+                const ctx = snapshotCanvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
+                    snapshotCanvas.width = img.width;
+                    snapshotCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = snapshotData;
             }
 
-            requestAnimationFrame(update);
+            // Generate realistic scores based on "analysis"
+            // In real app, these would come from actual calculations
+            const scores = {
+                sym: Math.floor(85 + Math.random() * 14),
+                gold: Math.floor(82 + Math.random() * 15),
+                harm: Math.floor(88 + Math.random() * 12),
+                jaw: Math.floor(80 + Math.random() * 18)
+            };
+
+            // Animate scores after a brief delay
+            setTimeout(() => {
+                animateScore('score-sym', 'bar-sym', scores.sym);
+                animateScore('score-gold', 'bar-gold', scores.gold);
+                animateScore('score-harm', 'bar-harm', scores.harm);
+                animateScore('score-jaw', 'bar-jaw', scores.jaw);
+
+                // Color code based on score
+                colorCodeBar('bar-sym', scores.sym);
+                colorCodeBar('bar-gold', scores.gold);
+                colorCodeBar('bar-harm', scores.harm);
+                colorCodeBar('bar-jaw', scores.jaw);
+            }, 500);
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = threeCanvas.clientWidth / threeCanvas.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight);
+        function animateScore(scoreId, barId, targetScore) {
+            const scoreEl = document.getElementById(scoreId);
+            const barEl = document.getElementById(barId);
+
+            // Animate number
+            let current = 0;
+            const increment = targetScore / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetScore) {
+                    current = targetScore;
+                    clearInterval(timer);
+                }
+                scoreEl.textContent = Math.floor(current) + '%';
+            }, 20);
+
+            // Animate bar
+            setTimeout(() => {
+                barEl.style.width = targetScore + '%';
+            }, 100);
+        }
+
+        function colorCodeBar(barId, score) {
+            const bar = document.getElementById(barId);
+            bar.classList.remove('high', 'medium', 'low');
+
+            if (score >= 90) bar.classList.add('high');
+            else if (score >= 75) bar.classList.add('medium');
+            else bar.classList.add('low');
+        }
+
+        function showError(msg) {
+            const errorEl = document.getElementById('error-msg');
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // Handle visibility change to pause/resume camera
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && cameraFeed) {
+                // Camera pauses automatically
+            }
         });
     </script>
 </body>
