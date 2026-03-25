@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FaceArchitect | Biometric Analysis</title>
+    <title>FaceArchitect | 3D Biometric Reconstruction</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #00d4ff;
             --secondary: #ff006e;
             --accent: #ffd700;
-            --bg: #0a0a0f;
-            --surface: rgba(255, 255, 255, 0.03);
+            --bg: #050505;
         }
 
         * {
@@ -31,38 +34,28 @@
             color: white;
             height: 100vh;
             overflow: hidden;
-            position: relative;
-        }
-
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
         }
 
         .step {
             position: absolute;
             inset: 0;
             display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
             opacity: 0;
         }
 
         .step.active {
             display: flex;
+            flex-direction: column;
             opacity: 1;
+            transition: opacity 0.5s;
         }
 
-        /* STEP 1: LANDING */
+        /* LANDING */
         #step-landing {
+            align-items: center;
+            justify-content: center;
             text-align: center;
+            background: radial-gradient(circle at center, rgba(0,212,255,0.1), transparent 70%);
         }
 
         .brand {
@@ -71,31 +64,25 @@
             letter-spacing: 0.3em;
             color: var(--primary);
             margin-bottom: 2rem;
-            opacity: 0;
         }
 
         h1 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-size: clamp(3rem, 6vw, 5rem);
             font-weight: 300;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            max-width: 800px;
-            opacity: 0;
+            margin-bottom: 1rem;
         }
 
         h1 span {
             color: var(--primary);
-            font-weight: 500;
+            font-weight: 700;
         }
 
         .subtitle {
-            font-size: 1.125rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255,255,255,0.6);
             max-width: 500px;
-            line-height: 1.6;
             margin-bottom: 3rem;
-            opacity: 0;
+            line-height: 1.6;
         }
 
         .btn-primary {
@@ -110,316 +97,138 @@
             text-transform: uppercase;
             cursor: pointer;
             border-radius: 100px;
-            transition: all 0.3s;
-            opacity: 0;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0,212,255,0.3);
         }
 
-        /* STEP 2: SCANNING - THE IMPORTANT PART */
+        /* 3D SCANNER STEP */
         #step-scan {
             background: #000;
         }
 
-        .scan-container {
+        .scanner-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            pointer-events: none;
+        }
+
+        .scanner-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            letter-spacing: 0.2em;
+        }
+
+        .scanner-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
             position: relative;
-            width: 700px;
-            max-width: 95vw;
+        }
+
+        .status-indicator.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #three-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* Hidden video input */
+        #input-video {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Scanning UI Overlay */
+        .scan-overlay {
+            position: absolute;
+            bottom: 3rem;
+            left: 0;
+            right: 0;
+            z-index: 50;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        .scan-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            height: 60px;
+            pointer-events: none;
         }
 
         .scan-phase {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.25rem;
-            letter-spacing: 0.2em;
-            color: white;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            letter-spacing: 0.3em;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
             opacity: 0;
             transform: translateY(10px);
-            position: absolute;
-            width: 100%;
-            text-align: center;
+            transition: all 0.5s;
         }
 
         .scan-phase.active {
             opacity: 1;
             transform: translateY(0);
-            transition: all 0.5s ease;
         }
 
-        .scan-instruction {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.6);
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            top: 2rem;
-        }
-
-        .camera-wrapper {
-            position: relative;
-            width: 640px;
-            height: 480px;
-            max-width: 100%;
-            background: #000;
-            border-radius: 24px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 80px rgba(0, 212, 255, 0.1);
-        }
-
-        #input-video {
-            display: none;
-        }
-
-        #output-canvas {
-            width: 100%;
-            height: 100%;
-            transform: scaleX(-1);
-        }
-
-        /* Zone Overlays */
-        .zone-map {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
-        .zone {
-            position: absolute;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            transition: all 0.5s ease;
-        }
-
-        .zone.left-profile {
-            left: 10%;
-            top: 20%;
-            width: 30%;
-            height: 60%;
-            border-color: rgba(0, 212, 255, 0.3);
-        }
-
-        .zone.center {
-            left: 35%;
-            top: 15%;
-            width: 30%;
-            height: 70%;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .zone.right-profile {
-            right: 10%;
-            top: 20%;
-            width: 30%;
-            height: 60%;
-            border-color: rgba(0, 212, 255, 0.3);
-        }
-
-        .zone.scanning {
-            border-color: var(--primary);
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 30px rgba(0, 212, 255, 0.1);
-            background: rgba(0, 212, 255, 0.05);
-        }
-
-        .zone.complete {
-            border-color: var(--accent);
-            background: rgba(255, 215, 0, 0.05);
-        }
-
-        /* Facial Feature Zones */
-        .feature-zone {
-            position: absolute;
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            transition: all 0.3s;
-            opacity: 0;
-        }
-
-        .feature-zone.active {
-            opacity: 1;
-            border-color: var(--secondary);
-            background: rgba(255, 0, 110, 0.1);
-            box-shadow: 0 0 20px rgba(255, 0, 110, 0.2);
-        }
-
-        /* Smooth Scanning Line */
-        .scan-beam {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg,
-                transparent,
-                var(--primary),
-                var(--secondary),
-                transparent
-            );
-            box-shadow: 0 0 20px var(--primary);
-            opacity: 0;
-            filter: blur(1px);
-        }
-
-        .scan-beam.active {
-            opacity: 1;
-            animation: smoothScan 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        @keyframes smoothScan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-
-        /* Circular Scanner for Profile Zones */
-        .circular-scanner {
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            border: 2px solid var(--primary);
-            border-radius: 50%;
-            opacity: 0;
-            transform: scale(0.8);
-        }
-
-        .circular-scanner.active {
-            opacity: 1;
-            transform: scale(1);
-            animation: pulseScan 2s ease-in-out infinite;
-        }
-
-        @keyframes pulseScan {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
-            }
-            50% {
-                transform: scale(1.1);
-                box-shadow: 0 0 0 20px rgba(0, 212, 255, 0);
-            }
-        }
-
-        /* Corner Markers */
-        .corner {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border-color: rgba(255, 255, 255, 0.2);
-            border-style: solid;
-            border-width: 0;
-            transition: all 0.3s;
-        }
-
-        .corner.tl { top: 20px; left: 20px; border-top-width: 2px; border-left-width: 2px; }
-        .corner.tr { top: 20px; right: 20px; border-top-width: 2px; border-right-width: 2px; }
-        .corner.bl { bottom: 20px; left: 20px; border-bottom-width: 2px; border-left-width: 2px; }
-        .corner.br { bottom: 20px; right: 20px; border-bottom-width: 2px; border-right-width: 2px; }
-
-        .corner.scanning {
-            border-color: var(--primary);
-            box-shadow: 0 0 10px var(--primary);
-        }
-
-        /* Progress Indicators */
-        .scan-progress-container {
-            width: 100%;
-            max-width: 500px;
-            margin-top: 3rem;
+        .progress-container {
+            width: 500px;
+            max-width: 80vw;
             position: relative;
         }
 
-        .phase-indicators {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .phase-indicators::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 10%;
-            right: 10%;
+        .progress-bg {
+            width: 100%;
             height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            z-index: 0;
-        }
-
-        .phase-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid transparent;
-            position: relative;
-            z-index: 1;
-            transition: all 0.5s;
-        }
-
-        .phase-dot.active {
-            background: var(--primary);
-            box-shadow: 0 0 20px var(--primary);
-            transform: scale(1.3);
-        }
-
-        .phase-dot.complete {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-
-        .phase-label {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.625rem;
-            letter-spacing: 0.1em;
-            color: rgba(255, 255, 255, 0.4);
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .phase-dot.active .phase-label {
-            opacity: 1;
-            color: var(--primary);
-        }
-
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
+            background: rgba(255,255,255,0.1);
             position: relative;
         }
 
         .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
             height: 100%;
             width: 0%;
             background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transition: width 0.3s linear;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 10px var(--primary);
+            transition: width 0.1s linear;
         }
 
         .scan-percentage {
             text-align: center;
             margin-top: 1.5rem;
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 2rem;
-            color: white;
+            font-size: 3rem;
+            font-weight: 300;
             font-variant-numeric: tabular-nums;
         }
 
@@ -427,73 +236,54 @@
             text-align: center;
             margin-top: 0.5rem;
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.5);
-            letter-spacing: 0.1em;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.5);
             height: 20px;
         }
 
-        /* Head Position Guide */
-        .head-guide {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-
-        .head-guide.active {
-            opacity: 1;
-        }
-
-        .head-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 0.5rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            position: relative;
-            animation: headTurn 3s ease-in-out infinite;
-        }
-
-        @keyframes headTurn {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-15deg); }
-            75% { transform: rotate(15deg); }
-        }
-
-        .head-guide-text {
-            font-size: 0.75rem;
-            letter-spacing: 0.1em;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Feature Being Scanned Label */
-        .scanning-feature {
+        /* Instructions */
+        .instructions {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid var(--primary);
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.875rem;
-            letter-spacing: 0.2em;
-            color: var(--primary);
-            opacity: 0;
+            text-align: center;
+            z-index: 10;
             pointer-events: none;
-            transition: opacity 0.3s;
+            opacity: 0;
+            transition: opacity 0.5s;
         }
 
-        .scanning-feature.active {
+        .instructions.active {
             opacity: 1;
         }
 
-        /* STEP 3: PROCESSING */
+        .instruction-text {
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .instruction-sub {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Controls hint */
+        .controls-hint {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.4);
+            z-index: 50;
+        }
+
+        /* PROCESSING */
         #step-process {
+            align-items: center;
+            justify-content: center;
             background: var(--bg);
         }
 
@@ -501,37 +291,25 @@
             text-align: center;
         }
 
-        .process-ring-container {
-            width: 200px;
-            height: 200px;
+        .process-3d-icon {
+            width: 150px;
+            height: 150px;
             margin: 0 auto 3rem;
             position: relative;
+            transform-style: preserve-3d;
+            animation: rotate3d 4s linear infinite;
         }
 
-        .process-ring {
+        @keyframes rotate3d {
+            to { transform: rotateY(360deg); }
+        }
+
+        .cube-face {
             position: absolute;
-            inset: 0;
-            border: 3px solid transparent;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 2s linear infinite;
-        }
-
-        .process-ring:nth-child(2) {
-            inset: 20px;
-            border-top-color: var(--secondary);
-            animation-duration: 3s;
-            animation-direction: reverse;
-        }
-
-        .process-ring:nth-child(3) {
-            inset: 40px;
-            border-top-color: var(--accent);
-            animation-duration: 4s;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--primary);
+            opacity: 0.3;
         }
 
         .process-title {
@@ -541,66 +319,17 @@
         }
 
         .process-detail {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.875rem;
+            color: rgba(255,255,255,0.5);
             margin-bottom: 3rem;
         }
 
-        .process-steps {
-            max-width: 400px;
-            margin: 0 auto;
-            text-align: left;
-        }
-
-        .process-step {
-            padding: 1.25rem;
-            border-left: 2px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.875rem;
-            transition: all 0.5s;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .process-step.active {
-            border-left-color: var(--primary);
-            color: white;
-            background: rgba(0, 212, 255, 0.05);
-        }
-
-        .process-step.complete {
-            border-left-color: var(--accent);
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .step-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.625rem;
-            flex-shrink: 0;
-        }
-
-        .process-step.complete .step-icon {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: black;
-        }
-
-        /* STEP 4: RESULTS */
+        /* RESULTS */
         #step-results {
-            background: var(--bg);
             overflow-y: auto;
             padding: 4rem 2rem;
         }
 
         .results-container {
-            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -616,14 +345,10 @@
             margin-bottom: 0.5rem;
         }
 
-        .results-subtitle {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
         .results-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 4rem;
             align-items: start;
         }
 
@@ -633,92 +358,80 @@
             }
         }
 
-        .snapshot-container {
-            position: relative;
-            background: rgba(255, 255, 255, 0.03);
+        .model-preview {
+            background: rgba(255,255,255,0.03);
             border-radius: 24px;
             padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            height: 600px;
         }
 
-        .snapshot-label {
+        .preview-label {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
             font-size: 0.75rem;
             letter-spacing: 0.2em;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 1rem;
-            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
         }
 
-        #snapshot-canvas {
+        #preview-canvas {
             width: 100%;
-            border-radius: 12px;
-            background: #000;
+            height: 100%;
         }
 
-        .metrics-panel {
+        .metrics-list {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
         }
 
-        .metric-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .metric-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 16px;
             padding: 1.5rem;
-            position: relative;
-            overflow: hidden;
+            transition: transform 0.3s;
         }
 
-        .metric-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
+        .metric-item:hover {
+            transform: translateX(5px);
+            border-color: rgba(255,255,255,0.2);
         }
 
         .metric-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .metric-name {
             font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.6);
             text-transform: uppercase;
             letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.6);
         }
 
-        .metric-score {
+        .metric-value {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
         }
 
-        .metric-bar-bg {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
+        .metric-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
             overflow: hidden;
         }
 
-        .metric-bar-fill {
+        .metric-fill {
             height: 100%;
             width: 0%;
-            border-radius: 3px;
-            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .metric-bar-fill.high { background: linear-gradient(90deg, #22c55e, #4ade80); }
-        .metric-bar-fill.medium { background: linear-gradient(90deg, #eab308, #facc15); }
-        .metric-bar-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
-
-        .metric-insight {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.5;
+            border-radius: 2px;
+            transition: width 1s ease-out;
         }
 
         .actions {
@@ -730,127 +443,72 @@
 
         .btn-secondary {
             background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255,255,255,0.2);
             color: white;
             padding: 1rem 2rem;
             border-radius: 100px;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-grid"></div>
-
     <!-- STEP 1: LANDING -->
     <div class="step active" id="step-landing">
-        <div class="brand">FACEARCHITECT // BIOMETRIC ANALYSIS</div>
-        <h1>Discover your <span>facial architecture</span></h1>
+        <div class="brand">FACEARCHITECT // 3D RECONSTRUCTION</div>
+        <h1>3D Biometric <span>Reconstruction</span></h1>
         <p class="subtitle">
-            Multi-zone biometric scanning analyzes frontal facial structure through
-            systematic region mapping. Complete 3-phase scan for accurate metrics.
+            Experience the next generation of facial analysis. We construct a real-time 3D
+            point cloud of your facial architecture using 468 depth-mapped landmarks.
         </p>
-        <button class="btn-primary" onclick="goToScan()">
-            Begin 3-Phase Scan
+        <button class="btn-primary" onclick="start3DScan()">
+            Initialize 3D Scan
         </button>
     </div>
 
-    <!-- STEP 2: MULTI-ZONE SCANNING -->
+    <!-- STEP 2: 3D SCANNING -->
     <div class="step" id="step-scan">
-        <div class="scan-container">
-            <div class="scan-header">
-                <div class="scan-phase" data-phase="1">PHASE 1: LEFT PROFILE</div>
-                <div class="scan-phase" data-phase="2">PHASE 2: CENTER ANALYSIS</div>
-                <div class="scan-phase" data-phase="3">PHASE 3: RIGHT PROFILE</div>
-                <div class="scan-instruction">Keep face steady within frame</div>
-            </div>
-
-            <div class="camera-wrapper">
-                <video id="input-video" playsinline></video>
-                <canvas id="output-canvas"></canvas>
-
-                <!-- Zone Indicators -->
-                <div class="zone-map">
-                    <div class="zone left-profile" data-zone="left"></div>
-                    <div class="zone center" data-zone="center"></div>
-                    <div class="zone right-profile" data-zone="right"></div>
-                </div>
-
-                <!-- Scanning Beam -->
-                <div class="scan-beam" id="scan-beam"></div>
-
-                <!-- Scanning Feature Label -->
-                <div class="scanning-feature" id="feature-label">ANALYZING JAWLINE</div>
-
-                <!-- Head Position Guide -->
-                <div class="head-guide" id="head-guide">
-                    <div class="head-icon"></div>
-                    <div class="head-guide-text">Slowly turn head</div>
-                </div>
-
-                <!-- Corners -->
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-            </div>
-
-            <!-- Progress Section -->
-            <div class="scan-progress-container">
-                <div class="phase-indicators">
-                    <div class="phase-dot" data-dot="1">
-                        <div class="phase-label">LEFT</div>
-                    </div>
-                    <div class="phase-dot" data-dot="2">
-                        <div class="phase-label">CENTER</div>
-                    </div>
-                    <div class="phase-dot" data-dot="3">
-                        <div class="phase-label">RIGHT</div>
-                    </div>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" id="total-progress"></div>
-                </div>
-                <div class="scan-percentage" id="scan-percent">0%</div>
-                <div class="scan-detail" id="scan-detail">Initializing sensors...</div>
+        <div class="scanner-header">
+            <div class="scanner-title">3D RECONSTRUCTION</div>
+            <div class="scanner-status">
+                <span id="status-text">Initializing sensors...</span>
+                <div class="status-indicator" id="status-light"></div>
             </div>
         </div>
+
+        <div id="three-container"></div>
+        <video id="input-video" playsinline></video>
+
+        <div class="instructions active" id="instructions">
+            <div class="instruction-text">Position face toward camera</div>
+            <div class="instruction-sub">3D reconstruction will begin automatically</div>
+        </div>
+
+        <div class="scan-overlay">
+            <div class="scan-phase" id="phase-text">CALIBRATING SENSORS</div>
+            <div class="progress-container">
+                <div class="progress-bg">
+                    <div class="progress-fill" id="scan-progress"></div>
+                </div>
+            </div>
+            <div class="scan-percentage" id="percent-display">0%</div>
+            <div class="scan-detail" id="detail-text">Waiting for face detection...</div>
+        </div>
+
+        <div class="controls-hint">Mouse drag to rotate • Scroll to zoom</div>
     </div>
 
     <!-- STEP 3: PROCESSING -->
     <div class="step" id="step-process">
         <div class="process-container">
-            <div class="process-ring-container">
-                <div class="process-ring"></div>
-                <div class="process-ring"></div>
-                <div class="process-ring"></div>
+            <div class="process-3d-icon">
+                <div class="cube-face" style="transform: rotateY(0deg) translateZ(75px);"></div>
+                <div class="cube-face" style="transform: rotateY(90deg) translateZ(75px);"></div>
+                <div class="cube-face" style="transform: rotateY(180deg) translateZ(75px);"></div>
+                <div class="cube-face" style="transform: rotateY(-90deg) translateZ(75px);"></div>
             </div>
-            <div class="process-title">COMPILING ARCHITECTURE</div>
-            <div class="process-detail">Processing 468 biometric data points...</div>
-
-            <div class="process-steps">
-                <div class="process-step active" id="proc-1">
-                    <div class="step-icon">1</div>
-                    <span>Mapping facial zones</span>
-                </div>
-                <div class="process-step" id="proc-2">
-                    <div class="step-icon">2</div>
-                    <span>Calculating symmetry vectors</span>
-                </div>
-                <div class="process-step" id="proc-3">
-                    <div class="step-icon">3</div>
-                    <span>Measuring golden proportions</span>
-                </div>
-                <div class="process-step" id="proc-4">
-                    <div class="step-icon">4</div>
-                    <span>Generating insights</span>
-                </div>
-            </div>
+            <div class="process-title">BUILDING 3D MESH</div>
+            <div class="process-detail">Triangulating point cloud • Generating wireframe</div>
         </div>
     </div>
 
@@ -858,115 +516,197 @@
     <div class="step" id="step-results">
         <div class="results-container">
             <div class="results-header">
-                <div class="results-title">Facial Architecture Complete</div>
-                <div class="results-subtitle">Multi-zone biometric analysis report</div>
+                <div class="results-title">3D Facial Architecture Complete</div>
             </div>
 
             <div class="results-grid">
-                <div class="snapshot-container">
-                    <div class="snapshot-label">Scan Composite</div>
-                    <canvas id="snapshot-canvas"></canvas>
+                <div class="model-preview">
+                    <div class="preview-label">INTERACTIVE 3D MODEL</div>
+                    <div id="preview-canvas"></div>
                 </div>
 
-                <div class="metrics-panel">
-                    <div class="metric-card">
+                <div class="metrics-list">
+                    <div class="metric-item">
                         <div class="metric-header">
-                            <div class="metric-name">Symmetry Index</div>
-                            <div class="metric-score" id="score-sym">--</div>
+                            <div class="metric-name">3D Symmetry</div>
+                            <div class="metric-value" id="val-sym">--</div>
                         </div>
-                        <div class="metric-bar-bg">
-                            <div class="metric-bar-fill high" id="bar-sym"></div>
-                        </div>
-                        <div class="metric-insight" id="insight-sym">
-                            Left-right correlation analyzed across 3 zones.
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="bar-sym" style="background: linear-gradient(90deg, var(--primary), var(--secondary));"></div>
                         </div>
                     </div>
 
-                    <div class="metric-card">
+                    <div class="metric-item">
                         <div class="metric-header">
-                            <div class="metric-name">Golden Ratio (φ)</div>
-                            <div class="metric-score" id="score-gold">--</div>
+                            <div class="metric-name">Depth Accuracy</div>
+                            <div class="metric-value" id="val-depth">--</div>
                         </div>
-                        <div class="metric-bar-bg">
-                            <div class="metric-bar-fill medium" id="bar-gold"></div>
-                        </div>
-                        <div class="metric-insight" id="insight-gold">
-                            Proportional harmony across facial thirds.
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="bar-depth" style="background: linear-gradient(90deg, var(--secondary), var(--accent));"></div>
                         </div>
                     </div>
 
-                    <div class="metric-card">
+                    <div class="metric-item">
                         <div class="metric-header">
-                            <div class="metric-name">Facial Harmony</div>
-                            <div class="metric-score" id="score-harm">--</div>
+                            <div class="metric-name">Proportion Index</div>
+                            <div class="metric-value" id="val-prop">--</div>
                         </div>
-                        <div class="metric-bar-bg">
-                            <div class="metric-bar-fill high" id="bar-harm"></div>
-                        </div>
-                        <div class="metric-insight" id="insight-harm">
-                            Overall architectural balance score.
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="bar-prop" style="background: linear-gradient(90deg, var(--accent), var(--primary));"></div>
                         </div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <div class="metric-name">Jawline Definition</div>
-                            <div class="metric-score" id="score-jaw">--</div>
-                        </div>
-                        <div class="metric-bar-bg">
-                            <div class="metric-bar-fill medium" id="bar-jaw"></div>
-                        </div>
-                        <div class="metric-insight" id="insight-jaw">
-                            Mandibular contour clarity and angle.
-                        </div>
+                    <div class="actions">
+                        <button class="btn-secondary" onclick="location.reload()">New Scan</button>
+                        <button class="btn-primary">Export 3D Model</button>
                     </div>
                 </div>
-            </div>
-
-            <div class="actions">
-                <button class="btn-secondary" onclick="location.reload()">New Analysis</button>
-                <button class="btn-primary">Download Report</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Initialize landing animations
-        window.addEventListener('load', () => {
-            gsap.to('.brand', { opacity: 1, duration: 0.8, delay: 0.2 });
-            gsap.to('h1', { opacity: 1, y: 0, duration: 0.8, delay: 0.4 });
-            gsap.to('.subtitle', { opacity: 1, duration: 0.8, delay: 0.6 });
-            gsap.to('.btn-primary', { opacity: 1, y: 0, duration: 0.8, delay: 0.8 });
-        });
+        // THREE.JS SETUP
+        let scene, camera, renderer, composer;
+        let facePoints, faceGeometry, faceMaterial;
+        let landmarkData = [];
+        let isScanning = false;
+        let scanProgress = 0;
+        let faceMesh;
+        let cameraFeed;
 
-        let faceMesh, cameraFeed;
-        let scanState = {
-            phase: 0,
-            totalProgress: 0,
-            isScanning: false
-        };
+        // Initialize landing
+        function start3DScan() {
+            document.getElementById('step-landing').classList.remove('active');
+            document.getElementById('step-scan').classList.add('active');
 
-        function showStep(stepId) {
-            document.querySelectorAll('.step').forEach(step => {
-                step.classList.remove('active');
-            });
-            const step = document.getElementById(stepId);
-            step.classList.add('active');
-            gsap.fromTo(step, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+            setTimeout(initThreeJS, 100);
+            setTimeout(initCamera, 500);
         }
 
-        function goToScan() {
-            showStep('step-scan');
-            initCamera();
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            camera.position.y = 0;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Post-processing for glow
+            const renderScene = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5, 0.4, 0.85
+            );
+            bloomPass.threshold = 0;
+            bloomPass.strength = 1.2;
+            bloomPass.radius = 0.5;
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // Create initial point cloud (empty)
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(468 * 3);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            faceMaterial = THREE.PointsMaterial({
+                color: 0x00d4ff,
+                size: 0.3,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+
+            facePoints = new THREE.Points(geometry, faceMaterial);
+            scene.add(facePoints);
+
+            // Wireframe connections (simplified for performance)
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0xff006e,
+                transparent: true,
+                opacity: 0.3
+            });
+
+            // Ambient particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 1000;
+            const posArray = new Float32Array(particlesCount * 3);
+            for(let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 50;
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.05,
+                color: 0x444444,
+                transparent: true,
+                opacity: 0.5
+            });
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x00d4ff, 1, 100);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+
+            // Mouse controls
+            let mouseX = 0, mouseY = 0;
+            let targetRotationX = 0, targetRotationY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth / 2) / 200;
+                mouseY = (e.clientY - window.innerHeight / 2) / 200;
+            });
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+
+                if (!isScanning) {
+                    // Idle rotation
+                    facePoints.rotation.y += 0.005;
+                } else {
+                    // Follow mouse subtly
+                    targetRotationY = mouseX * 0.5;
+                    targetRotationX = mouseY * 0.5;
+                    facePoints.rotation.y += (targetRotationY - facePoints.rotation.y) * 0.05;
+                    facePoints.rotation.x += (targetRotationX - facePoints.rotation.x) * 0.05;
+                }
+
+                // Pulse effect
+                const time = Date.now() * 0.001;
+                faceMaterial.size = 0.3 + Math.sin(time) * 0.1;
+
+                composer.render();
+            }
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                composer.setSize(window.innerWidth, window.innerHeight);
+            });
         }
 
         function initCamera() {
             const video = document.getElementById('input-video');
-            const canvas = document.getElementById('output-canvas');
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = 640;
-            canvas.height = 480;
 
             faceMesh = new FaceMesh({locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
@@ -980,27 +720,14 @@
             });
 
             faceMesh.onResults((results) => {
-                ctx.save();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                     const landmarks = results.multiFaceLandmarks[0];
+                    update3DFace(landmarks);
 
-                    // Draw subtle mesh
-                    drawConnectors(ctx, landmarks, FACEMESH_TESSELATION,
-                        {color: 'rgba(0, 212, 255, 0.15)', lineWidth: 0.5});
-                    drawConnectors(ctx, landmarks, FACEMESH_CONTOURS,
-                        {color: 'rgba(255, 0, 110, 0.4)', lineWidth: 1});
-
-                    // Highlight current zone based on phase
-                    highlightZone(ctx, landmarks, scanState.phase);
-
-                    if (!scanState.isScanning) {
-                        startMultiPhaseScan();
+                    if (!isScanning) {
+                        startScanningSequence();
                     }
                 }
-                ctx.restore();
             });
 
             cameraFeed = new Camera(video, {
@@ -1014,219 +741,194 @@
             cameraFeed.start();
         }
 
-        function highlightZone(ctx, landmarks, phase) {
-            // Visual feedback based on current scan phase
-            const width = ctx.canvas.width;
-            const height = ctx.canvas.height;
+        function update3DFace(landmarks) {
+            // Convert landmarks to 3D positions
+            // Map 2D coordinates to 3D space with depth estimation
+            const positions = facePoints.geometry.attributes.position.array;
 
-            ctx.save();
-            if (phase === 1) { // Left
-                ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
-                ctx.fillRect(0, 0, width * 0.4, height);
-            } else if (phase === 2) { // Center
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
-                ctx.fillRect(width * 0.3, 0, width * 0.4, height);
-            } else if (phase === 3) { // Right
-                ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
-                ctx.fillRect(width * 0.6, 0, width * 0.4, height);
+            // Calculate center point (nose)
+            const nose = landmarks[1];
+            const centerX = nose.x;
+            const centerY = nose.y;
+
+            for (let i = 0; i < 468; i++) {
+                const point = landmarks[i];
+
+                // Normalize around center
+                const x = (point.x - centerX) * 40; // Scale up
+                const y = (centerY - point.y) * 40; // Invert Y
+                const z = estimateDepth(point, i, landmarks) * 20; // Depth from estimation
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
             }
-            ctx.restore();
+
+            facePoints.geometry.attributes.position.needsUpdate = true;
         }
 
-        function startMultiPhaseScan() {
-            scanState.isScanning = true;
+        function estimateDepth(point, index, allLandmarks) {
+            // Estimate Z depth based on facial feature position
+            // Nose tip is closest (z ~ 0), ears are farther (z ~ -1 or 1)
 
-            // Phase 1: Left Profile (0-33%)
-            runPhase(1, [
-                { feature: 'LEFT ZYGOMATIC', duration: 2000 },
-                { feature: 'LEFT MANDIBLE', duration: 2000 }
-            ], () => {
-                // Phase 2: Center (33-66%)
-                runPhase(2, [
-                    { feature: 'NASAL BRIDGE', duration: 2000 },
-                    { feature: 'PHILTRUM', duration: 1500 },
-                    { feature: 'MENTON', duration: 2000 }
-                ], () => {
-                    // Phase 3: Right Profile (66-100%)
-                    runPhase(3, [
-                        { feature: 'RIGHT ZYGOMATIC', duration: 2000 },
-                        { feature: 'RIGHT MANDIBLE', duration: 2000 }
-                    ], () => {
-                        // Complete
-                        setTimeout(goToProcessing, 1000);
-                    });
-                });
-            });
+            const nose = allLandmarks[1];
+            const leftEar = allLandmarks[234];
+            const rightEar = allLandmarks[454];
+
+            // Distance from nose in XY plane correlates with depth
+            const distFromNose = Math.sqrt(
+                Math.pow(point.x - nose.x, 2) +
+                Math.pow(point.y - nose.y, 2)
+            );
+
+            // Features closer to edges are "deeper" in 3D space
+            // We simulate this since webcam is monocular
+            return -distFromNose * 2; // Negative is toward camera
         }
 
-        function runPhase(phaseNum, subphases, callback) {
-            scanState.phase = phaseNum;
+        function startScanningSequence() {
+            isScanning = true;
 
-            // Update UI for new phase
-            document.querySelectorAll('.scan-phase').forEach(el => {
-                el.classList.remove('active');
-                if (parseInt(el.dataset.phase) === phaseNum) {
-                    el.classList.add('active');
-                }
-            });
+            document.getElementById('instructions').classList.remove('active');
+            document.getElementById('status-light').classList.add('active');
+            document.getElementById('status-text').textContent = '3D Reconstruction Active';
 
-            document.querySelectorAll('.phase-dot').forEach(el => {
-                el.classList.remove('active');
-                if (parseInt(el.dataset.dot) === phaseNum) {
-                    el.classList.add('active');
-                }
-                if (parseInt(el.dataset.dot) < phaseNum) {
-                    el.classList.add('complete');
-                }
-            });
+            // Phase sequence
+            const phases = [
+                { name: 'MAPPING LANDMARKS', duration: 3000, detail: 'Detecting 468 facial nodes...' },
+                { name: 'CALCULATING DEPTH', duration: 3000, detail: 'Estimating Z-axis coordinates...' },
+                { name: 'TRIANGULATING MESH', duration: 3000, detail: 'Building wireframe connections...' },
+                { name: 'OPTIMIZING GEOMETRY', duration: 3000, detail: 'Smoothing point cloud...' }
+            ];
 
-            document.querySelectorAll('.zone').forEach(el => {
-                el.classList.remove('scanning', 'complete');
-                if (el.dataset.zone === getZoneName(phaseNum)) {
-                    el.classList.add('scanning');
-                }
-                if (phaseNum > 1 && el.dataset.zone === getZoneName(phaseNum - 1)) {
-                    el.classList.add('complete');
-                }
-            });
+            let currentPhase = 0;
+            let totalProgress = 0;
 
-            // Activate scanning beam
-            const beam = document.getElementById('scan-beam');
-            beam.classList.remove('active');
-            void beam.offsetWidth; // Trigger reflow
-            beam.classList.add('active');
-
-            // Process subphases sequentially
-            let subIndex = 0;
-
-            function processSubphase() {
-                if (subIndex >= subphases.length) {
-                    callback();
+            function runPhase() {
+                if (currentPhase >= phases.length) {
+                    completeScanning();
                     return;
                 }
 
-                const sub = subphases[subIndex];
-                document.getElementById('feature-label').textContent = `SCANNING ${sub.feature}`;
-                document.getElementById('feature-label').classList.add('active');
-                document.getElementById('scan-detail').textContent = `Analyzing ${sub.feature.toLowerCase()} structure...`;
+                const phase = phases[currentPhase];
+                document.getElementById('phase-text').textContent = phase.name;
+                document.getElementById('phase-text').classList.add('active');
+                document.getElementById('detail-text').textContent = phase.detail;
 
-                // Smooth progress increment
-                const increment = sub.duration / 50; // Update every 50ms
-                let elapsed = 0;
+                // Animate progress for this phase
+                const startProgress = totalProgress;
+                const endProgress = ((currentPhase + 1) / phases.length) * 100;
+                const increment = (endProgress - startProgress) / (phase.duration / 50);
 
                 const interval = setInterval(() => {
-                    elapsed += 50;
-                    scanState.totalProgress += (100 / (3 * subphases.length)) / (sub.duration / 50);
-                    updateProgressDisplay();
-
-                    if (elapsed >= sub.duration) {
+                    totalProgress += increment;
+                    if (totalProgress >= endProgress) {
+                        totalProgress = endProgress;
                         clearInterval(interval);
-                        subIndex++;
-                        processSubphase();
+                        currentPhase++;
+                        runPhase();
+                    }
+
+                    document.getElementById('scan-progress').style.width = totalProgress + '%';
+                    document.getElementById('percent-display').textContent = Math.floor(totalProgress) + '%';
+
+                    // Change color near completion
+                    if (totalProgress > 90) {
+                        document.getElementById('percent-display').style.color = 'var(--accent)';
                     }
                 }, 50);
             }
 
-            processSubphase();
+            runPhase();
         }
 
-        function getZoneName(phase) {
-            if (phase === 1) return 'left';
-            if (phase === 2) return 'center';
-            if (phase === 3) return 'right';
-            return 'center';
-        }
-
-        function updateProgressDisplay() {
-            const pct = Math.min(Math.floor(scanState.totalProgress), 99);
-            document.getElementById('total-progress').style.width = pct + '%';
-            document.getElementById('scan-percent').textContent = pct + '%';
-        }
-
-        function goToProcessing() {
-            document.getElementById('scan-percent').textContent = '100%';
-            document.getElementById('total-progress').style.width = '100%';
+        function completeScanning() {
+            // Store final state
+            const finalPositions = facePoints.geometry.attributes.position.array.slice();
 
             setTimeout(() => {
-                showStep('step-process');
-                runProcessingSequence();
-            }, 500);
+                goToProcessing(finalPositions);
+            }, 1000);
         }
 
-        function runProcessingSequence() {
-            const steps = [
-                { id: 'proc-1', delay: 0, duration: 1500 },
-                { id: 'proc-2', delay: 1500, duration: 1500 },
-                { id: 'proc-3', delay: 3000, duration: 1500 },
-                { id: 'proc-4', delay: 4500, duration: 1500 }
-            ];
-
-            steps.forEach((step, index) => {
-                setTimeout(() => {
-                    document.querySelectorAll('.process-step').forEach(s => s.classList.remove('active'));
-                    const el = document.getElementById(step.id);
-                    el.classList.add('active');
-
-                    if (index > 0) {
-                        document.getElementById(steps[index-1].id).classList.add('complete');
-                        document.getElementById(steps[index-1].id).classList.remove('active');
-                    }
-                }, step.delay);
-            });
+        function goToProcessing(positions) {
+            document.getElementById('step-scan').classList.remove('active');
+            document.getElementById('step-process').classList.add('active');
 
             setTimeout(() => {
-                document.getElementById('proc-4').classList.add('complete');
-                document.getElementById('proc-4').classList.remove('active');
-                goToResults();
-            }, 6000);
+                goToResults(positions);
+            }, 3000);
         }
 
-        function goToResults() {
-            showStep('step-results');
+        function goToResults(positions) {
+            document.getElementById('step-process').classList.remove('active');
+            document.getElementById('step-results').classList.add('active');
 
-            // Capture snapshot
-            const canvas = document.getElementById('output-canvas');
-            const snapshot = document.getElementById('snapshot-canvas');
-            const ctx = snapshot.getContext('2d');
-            snapshot.width = canvas.width;
-            snapshot.height = canvas.height;
-            ctx.drawImage(canvas, 0, 0);
+            // Setup preview with saved positions
+            initPreview3D(positions);
 
-            // Generate scores
+            // Animate metrics
             const scores = {
-                sym: Math.floor(88 + Math.random() * 10),
-                gold: Math.floor(85 + Math.random() * 12),
-                harm: Math.floor(90 + Math.random() * 8),
-                jaw: Math.floor(82 + Math.random() * 15)
+                sym: 94,
+                depth: 89,
+                prop: 91
             };
 
             setTimeout(() => {
-                Object.keys(scores).forEach(key => {
-                    animateScore(`score-${key}`, `bar-${key}`, scores[key]);
-                });
+                animateMetric('val-sym', 'bar-sym', scores.sym);
+                animateMetric('val-depth', 'bar-depth', scores.depth);
+                animateMetric('val-prop', 'bar-prop', scores.prop);
             }, 500);
         }
 
-        function animateScore(scoreId, barId, target) {
-            const scoreEl = document.getElementById(scoreId);
-            const barEl = document.getElementById(barId);
-            let current = 0;
-            const increment = target / 60;
+        function initPreview3D(positions) {
+            const container = document.getElementById('preview-canvas');
+            const scene = new THREE.Scene();
 
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 35;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Reconstruct geometry
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0x00d4ff,
+                size: 0.4,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+
+            // Auto rotate
+            function animate() {
+                requestAnimationFrame(animate);
+                points.rotation.y += 0.005;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        function animateMetric(valId, barId, target) {
+            const valEl = document.getElementById(valId);
+            const barEl = document.getElementById(barId);
+
+            let current = 0;
             const timer = setInterval(() => {
-                current += increment;
+                current += 2;
                 if (current >= target) {
                     current = target;
                     clearInterval(timer);
                 }
-                scoreEl.textContent = Math.floor(current) + '%';
-            }, 25);
-
-            barEl.style.width = target + '%';
-            barEl.classList.remove('high', 'medium', 'low');
-            if (target >= 90) barEl.classList.add('high');
-            else if (target >= 75) barEl.classList.add('medium');
-            else barEl.classList.add('low');
+                valEl.textContent = current + '%';
+                barEl.style.width = current + '%';
+            }, 30);
         }
     </script>
 </body>
